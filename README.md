@@ -1,5 +1,6 @@
-# [obitech/microservices-observability](https://github.comobitech/microservices-observability) - Sample application for demonstrating microservice observability
-Monitoring, Logging, Tracing
+# [obitech/microservices-observability](https://github.comobitech/microservices-observability)
+
+Sample shop application to demonstrate monitoring, logging and tracing on Kubernetes
 
 ## License
 
