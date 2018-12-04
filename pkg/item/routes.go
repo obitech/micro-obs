@@ -11,7 +11,7 @@ type Routes []util.Route
 
 // Routes defines all HTTP routes, hanging off the main Server struct.
 // Like that, all routes have access to the Server's dependencies.
-func (s *Server) Routes() {
+func (s *Server) routes() {
 	var routes = Routes{
 		util.Route{
 			"Root",
@@ -30,8 +30,8 @@ func (s *Server) Routes() {
 	for _, route := range routes {
 		var h http.HandlerFunc
 		h = route.HandlerFunc
-		h = util.LoggerWrapper(h, s.Logger)
-		s.Router.
+		h = util.LoggerWrapper(h, s.logger)
+		s.router.
 			Methods(route.Method).
 			Path(route.Pattern).
 			Name(route.Name).

@@ -1,26 +1,24 @@
 package main
 
 import (
-	"net/http"
+	"fmt"
+	"os"
 
 	"github.com/obitech/micro-obs/pkg/item"
-	"github.com/obitech/micro-obs/pkg/util"
 )
 
 func main() {
-	logger, _ := util.NewSugaredLogger()
-	defer logger.Sync()
-
-	s := item.Server{
-		Router: util.NewRouter(),
-		Logger: logger,
+	s, err := item.NewServer(
+		item.SetServerAddress(":8080"),
+		item.SetServerEndpoint("127.0.0.1:8080"),
+	)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(2)
 	}
 
-	s.Routes()
-	addr := "127.0.0.1:8080"
-
-	logger.Infow("Server listening",
-		"addr", addr,
-	)
-	logger.Fatal(http.ListenAndServe(addr, s.Router))
+	if err := s.Run(); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(3)
+	}
 }
