@@ -31,11 +31,11 @@ type ServerOptions func(*Server) error
 
 // NewServer creates a new Server according to options
 func NewServer(options ...ServerOptions) (*Server, error) {
+	// Create logger
 	logger, err := util.NewSugaredLogger()
 	if err != nil {
 		return nil, errors.Wrap(err, "Unable to create SugaredLogger")
 	}
-	
 
 	// Sane defaults
 	s := &Server{
@@ -52,23 +52,21 @@ func NewServer(options ...ServerOptions) (*Server, error) {
 		}
 	}
 
+	s.logger.Debugw("Creating new server",
+		"address", s.address,
+		"endpoint", s.endpoint,
+	)
+
 	// Setting routes
-	s.routes()
+	s.createRoutes()
 
 	return s, nil
-}
-
-func checkAddress(address string) error {
-	if _, _, err := net.SplitHostPort(address); err != nil {
-		return errors.Wrapf(err, "Invalid address %s", address)
-	}
-	return nil
 }
 
 // SetServerAddress sets the server address
 func SetServerAddress(address string) ServerOptions {
 	return func(s *Server) error {
-		if err := checkAddress(address); err != nil {
+		if err := util.CheckAddress(address); err != nil {
 			return err
 		}
 
@@ -80,7 +78,7 @@ func SetServerAddress(address string) ServerOptions {
 // SetServerEndpoint sets the server endpoint address for other services to call it
 func SetServerEndpoint(address string) ServerOptions {
 	return func(s *Server) error {
-		if err := checkAddress(address); err != nil {
+		if err := util.CheckAddress(address); err != nil {
 			return err
 		}
 
