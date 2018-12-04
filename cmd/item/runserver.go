@@ -5,13 +5,15 @@ import (
 	"os"
 
 	"github.com/obitech/micro-obs/pkg/item"
+	"github.com/spf13/cobra"
 )
 
-func main() {
+func runServer(cmd *cobra.Command, args []string) {
 	s, err := item.NewServer(
-		item.SetServerAddress(":8080"),
-		item.SetServerEndpoint("127.0.0.1:8080"),
+		item.SetServerAddress(address),
+		item.SetServerEndpoint(endpoint),
 	)
+
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(2)
