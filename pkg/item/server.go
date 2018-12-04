@@ -26,7 +26,7 @@ type Server struct {
 	logger   *zap.SugaredLogger
 }
 
-// ServerOptions sets options when creating a new server.
+// ServerOptions sets options when creating a new server
 type ServerOptions func(*Server) error
 
 // NewServer creates a new Server according to options
@@ -36,6 +36,8 @@ func NewServer(options ...ServerOptions) (*Server, error) {
 		return nil, errors.Wrap(err, "Unable to create SugaredLogger")
 	}
 	
+
+	// Sane defaults
 	s := &Server{
 		address:  ":8080",
 		endpoint: "127.0.0.1:9090",
@@ -43,6 +45,7 @@ func NewServer(options ...ServerOptions) (*Server, error) {
 		router: util.NewRouter(),
 	}
 
+	// Setting passed server options
 	for _, fn := range options {
 		if err := fn(s); err != nil {
 			return nil, errors.Wrap(err, "Failed to set server options")
@@ -90,7 +93,7 @@ func SetServerEndpoint(address string) ServerOptions {
 func (s *Server) Run() error {
 	defer s.logger.Sync()
 
-	// Create listener
+	// Create TCP listener
 	l, err := net.Listen("tcp", s.address)
 	if err != nil {
 		return errors.Wrapf(err, "Failed creating listener on %s", s.address)
