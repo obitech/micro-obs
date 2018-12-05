@@ -12,6 +12,7 @@ func runServer(cmd *cobra.Command, args []string) {
 	s, err := item.NewServer(
 		item.SetServerAddress(address),
 		item.SetServerEndpoint(endpoint),
+		item.SetLogLevel(logLevel),
 	)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)

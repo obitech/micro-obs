@@ -14,6 +14,21 @@ var validListeningAddresses = []string{
 	"192.0.2.1:http",
 }
 
+var logLevels = []struct {
+	level string
+	want  error
+}{
+	{"warn", nil},
+	{"info", nil},
+	{"debug", nil},
+	{"error", nil},
+	{"", nil},
+	{"asdo1293", nil},
+	{"😍", nil},
+	{"👾 🙇 💁 🙅 🙆 🙋 🙎 🙍", nil},
+	{"﷽", nil},
+}
+
 var validEndpointAddresses = append(validListeningAddresses, []string{
 	"golang.org:80",
 	"golang.org:http",
@@ -41,6 +56,14 @@ func TestNewServer(t *testing.T) {
 	t.Run("Creating new default server", func(t *testing.T) {
 		if _, err := NewServer(); err != nil {
 			t.Errorf("error while creating new item server: %s", err)
+		}
+	})
+
+	t.Run("Creating new default server with different log levels", func(t *testing.T) {
+		for _, tt := range logLevels {
+			if _, err := NewServer(SetLogLevel(tt.level)); tt.want != nil {
+				t.Errorf("error while creating new item server: %s", err)
+			}
 		}
 	})
 

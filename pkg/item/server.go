@@ -32,7 +32,7 @@ type ServerOptions func(*Server) error
 // NewServer creates a new Server according to options
 func NewServer(options ...ServerOptions) (*Server, error) {
 	// Create logger
-	logger, err := util.NewSugaredLogger()
+	logger, err := util.NewSugaredLogger("info")
 	if err != nil {
 		return nil, errors.Wrap(err, "Unable to create SugaredLogger")
 	}
@@ -79,6 +79,18 @@ func SetServerAddress(address string) ServerOptions {
 func SetServerEndpoint(address string) ServerOptions {
 	return func(s *Server) error {
 		s.endpoint = address
+		return nil
+	}
+}
+
+// SetLogLevel sets the log level to either debug, warn, error or info. Info is default.
+func SetLogLevel(level string) ServerOptions {
+	return func(s *Server) error {
+		l, err := util.NewSugaredLogger(level)
+		if err != nil {
+			return err
+		}
+		s.logger = l
 		return nil
 	}
 }

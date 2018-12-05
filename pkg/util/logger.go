@@ -10,19 +10,47 @@ import (
 
 // NewLogger creates a new logger
 // TODO: pass log level
-func NewLogger() (*zap.Logger, error) {
-	l, err := zap.NewProduction()
-	if err != nil {
-		return nil, errors.Wrap(err, "Unable to initialize zap logger")
+func newLogger(level string) (*zap.Logger, error) {
+	atom := zap.NewAtomicLevel()
+
+	switch level {
+	case "debug":
+		atom.SetLevel(zap.DebugLevel)
+	case "warn":
+		atom.SetLevel(zap.WarnLevel)
+	case "error":
+		atom.SetLevel(zap.ErrorLevel)
+	default:
+		level = "info"
+		atom.SetLevel(zap.InfoLevel)
 	}
+
+	cfg := zap.Config{
+		Development:       false,
+		DisableCaller:     true,
+		DisableStacktrace: true,
+		EncoderConfig:     zap.NewProductionEncoderConfig(),
+		Encoding:          "json",
+		ErrorOutputPaths:  []string{"stdout"},
+		Level:             atom,
+		OutputPaths:       []string{"stdout"},
+	}
+	l, err := cfg.Build()
+	if err != nil {
+		return nil, errors.Wrap(err, "Unable to initialize zap Logger")
+	}
+
+	l.Debug("Logger created",
+		zap.String("level", level),
+	)
 	return l, nil
 }
 
 // NewSugaredLogger creates a new sugared logger
-func NewSugaredLogger() (*zap.SugaredLogger, error) {
-	l, err := NewLogger()
+func NewSugaredLogger(level string) (*zap.SugaredLogger, error) {
+	l, err := newLogger(level)
 	if err != nil {
-		return nil, errors.Wrap(err, "Unable to initialize zap logger")
+		return nil, errors.Wrap(err, "Unable to initialize zap SugaredLogger")
 	}
 	return l.Sugar(), nil
 }
@@ -33,7 +61,7 @@ func LoggerWrapper(inner http.Handler, logger *zap.SugaredLogger) http.HandlerFu
 		start := time.Now()
 		inner.ServeHTTP(w, r)
 		logger.Infow("Request completed",
-			"remote-addr", r.RemoteAddr,
+			"address", r.RemoteAddr,
 			"method", r.Method,
 			"path", r.RequestURI,
 			"duration", time.Since(start),
