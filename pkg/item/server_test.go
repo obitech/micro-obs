@@ -19,7 +19,7 @@ var validEndpointAddresses = append(validListeningAddresses, []string{
 	"golang.org:http",
 }...)
 
-var invalidAddresses = []string{
+var invalidListeningAddresses = []string{
 	":9999999",
 	":-1",
 	"asokdklasd",
@@ -54,6 +54,18 @@ func TestNewServer(t *testing.T) {
 				if err != nil {
 					t.Errorf("error while creating new item server: %s", err)
 				}
+			}
+		}
+	})
+
+	t.Run("Creating new server with invalid addresses", func(t *testing.T) {
+		for _, tt := range invalidListeningAddresses {
+			_, err := NewServer(
+				SetServerAddress(tt),
+				SetServerEndpoint(tt),
+			)
+			if err == nil {
+				t.Errorf("Expected error when creating item server with listening address %s, got %s", tt, err)
 			}
 		}
 	})
