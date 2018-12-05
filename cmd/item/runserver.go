@@ -13,7 +13,6 @@ func runServer(cmd *cobra.Command, args []string) {
 		item.SetServerAddress(address),
 		item.SetServerEndpoint(endpoint),
 	)
-
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(2)

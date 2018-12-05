@@ -66,7 +66,7 @@ func NewServer(options ...ServerOptions) (*Server, error) {
 // SetServerAddress sets the server address
 func SetServerAddress(address string) ServerOptions {
 	return func(s *Server) error {
-		if err := util.CheckAddress(address); err != nil {
+		if err := util.CheckTCPAddress(address); err != nil {
 			return err
 		}
 
@@ -78,10 +78,6 @@ func SetServerAddress(address string) ServerOptions {
 // SetServerEndpoint sets the server endpoint address for other services to call it
 func SetServerEndpoint(address string) ServerOptions {
 	return func(s *Server) error {
-		if err := util.CheckAddress(address); err != nil {
-			return err
-		}
-
 		s.endpoint = address
 		return nil
 	}
@@ -120,6 +116,12 @@ func (s *Server) Run() error {
 	s.Stop()
 
 	return nil
+}
+
+// ServeHTTP dispatches the request to the matching mux handler
+// This function is mainly intended for testing purposes
+func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	s.router.ServeHTTP(w, r)
 }
 
 // Stop will stop the server

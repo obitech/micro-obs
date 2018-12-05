@@ -9,6 +9,7 @@ import (
 )
 
 // NewLogger creates a new logger
+// TODO: pass log level
 func NewLogger() (*zap.Logger, error) {
 	l, err := zap.NewProduction()
 	if err != nil {
