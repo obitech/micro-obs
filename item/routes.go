@@ -3,7 +3,7 @@ package item
 import (
 	"net/http"
 
-	"github.com/obitech/micro-obs/pkg/util"
+	"github.com/obitech/micro-obs/util"
 )
 
 // Routes defines a slice of all available API Routes

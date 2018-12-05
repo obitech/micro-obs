@@ -8,8 +8,7 @@ import (
 	"go.uber.org/zap"
 )
 
-// NewLogger creates a new logger
-// TODO: pass log level
+// newLogger creates a new logger
 func newLogger(level string) (*zap.Logger, error) {
 	atom := zap.NewAtomicLevel()
 

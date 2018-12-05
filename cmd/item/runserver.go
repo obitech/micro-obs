@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/obitech/micro-obs/pkg/item"
+	"github.com/obitech/micro-obs/item"
 	"github.com/spf13/cobra"
 )
 

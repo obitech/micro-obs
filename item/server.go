@@ -1,7 +1,7 @@
 package item
 
 import (
-	"github.com/obitech/micro-obs/pkg/util"
+	"github.com/obitech/micro-obs/util"
 	"context"
 	"net"
 	"net/http"

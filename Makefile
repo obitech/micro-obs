@@ -1,7 +1,13 @@
+.PHONY: all
+all: build
+
+.PHONY: build
 build: test build-item
 
+.PHONY: test
 test:
 	go test ./...
 
+.PHONY: build-item
 build-item:
-	GOBIN=$(shell pwd)/bin/item go install ./cmd/item
+	go build -o bin/item/item ./cmd/item
