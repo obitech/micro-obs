@@ -8,13 +8,14 @@ ENV CGO_ENABLED=0
 WORKDIR /app
 
 COPY go.mod go.sum ./
-COPY pkg/ .
-COPY cmd/ .
+COPY item/ item/
+COPY cmd/ cmd/
+COPY util/ util/
 
 RUN go mod download
 RUN go test ./... 
-RUN go build -o bin/item/item ./cmd/item
+RUN go build -o bin/item ./cmd/item
 
-FROM golang:1.11-alpine
+FROM alpine:latest
 
 COPY --from=builder /app/bin/item /usr/local/bin/

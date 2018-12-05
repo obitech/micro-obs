@@ -10,4 +10,8 @@ test:
 
 .PHONY: build-item
 build-item:
-	go build -o bin/item/item ./cmd/item
+	go build -o bin/item ./cmd/item
+
+.PHONE: clean
+clean:
+	rm bin/*
