@@ -1,6 +1,5 @@
 FROM golang:1.11 as builder
 
-# ENV GO111MODULE=on
 ENV GOOS=linux
 ENV GOARCH=amd64
 ENV CGO_ENABLED=0
