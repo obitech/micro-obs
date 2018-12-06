@@ -1,9 +1,9 @@
 package item
 
 import (
-	"net/http"
-
 	"github.com/obitech/micro-obs/util"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"net/http"
 )
 
 // Routes defines a slice of all available API Routes
@@ -14,13 +14,13 @@ type Routes []util.Route
 func (s *Server) createRoutes() {
 	var routes = Routes{
 		util.Route{
-			"Root",
+			"root",
 			"GET",
 			"/",
 			util.Healthz(),
 		},
 		util.Route{
-			"Root",
+			"healthz",
 			"GET",
 			"/healthz",
 			util.Healthz(),
@@ -37,4 +37,11 @@ func (s *Server) createRoutes() {
 			Name(route.Name).
 			Handler(h)
 	}
+
+	// Prometheus endpoint
+	s.router.
+		Methods("GET").
+		Path("/metrics").
+		Name("prometheus metrics endpoint").
+		Handler(util.LoggerWrapper(promhttp.Handler(), s.logger))
 }

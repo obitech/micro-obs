@@ -17,7 +17,7 @@ func CheckTCPAddress(address string) error {
 
 	ip := net.ParseIP(host)
 	if ip == nil && host != "" {
-		return errors.New(fmt.Sprintf("Invalid IP address: %#v", host))
+		return errors.New(fmt.Sprintf("Error: Invalid IP address: %#v", host))
 	}
 
 	if err := CheckPort(port); err != nil {

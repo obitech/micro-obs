@@ -1,8 +1,8 @@
 package item
 
 import (
-	"github.com/obitech/micro-obs/util"
 	"context"
+	"github.com/obitech/micro-obs/util"
 	"net"
 	"net/http"
 	"os"
@@ -41,8 +41,8 @@ func NewServer(options ...ServerOptions) (*Server, error) {
 	s := &Server{
 		address:  ":8080",
 		endpoint: "127.0.0.1:9090",
-		logger: logger,
-		router: util.NewRouter(),
+		logger:   logger,
+		router:   util.NewRouter(),
 	}
 
 	// Setting passed server options

@@ -50,6 +50,7 @@ var validEndpoints = []struct {
 	{"GET", "/", 200},
 	{"GET", "/healthz", 200},
 	{"GET", "/asdasd", 404},
+	{"GET", "/metrics", 200},
 }
 
 func TestNewServer(t *testing.T) {
