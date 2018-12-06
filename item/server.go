@@ -107,7 +107,10 @@ func (s *Server) Run() error {
 
 	// Create HTTP Server
 	s.server = &http.Server{
-		Handler: s.router,
+		Handler:        s.router,
+		ReadTimeout:    10 * time.Second,
+		WriteTimeout:   10 * time.Second,
+		MaxHeaderBytes: 1 << 20,
 	}
 
 	// Setting up goroutine for serving
