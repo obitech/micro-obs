@@ -1,0 +1,16 @@
+language: go
+go:
+  - "1.11.x"
+
+jobs:
+  include:
+    - stage: "Install"
+      name: "Install dependencies"
+      script: go mod verify
+    - stage: "Test"
+      name: "Vetting and unit tests"
+      script: 
+        - go vet ./...
+        - go test ./...
+env:
+  - GO111MODULE=on
