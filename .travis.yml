@@ -4,9 +4,6 @@ go:
 
 jobs:
   include:
-    - stage: "Install"
-      name: "Install dependencies"
-      script: go mod verify
     - stage: "Test"
       name: "Vetting and unit tests"
       script: 
