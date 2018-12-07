@@ -15,7 +15,7 @@ git clone https://github.com/obitech/micro-obs.git
 cd micro-obs/
 ```
 
-Run `make` to build it:
+Run `make` to test & build it:
 
 ```bash
 make

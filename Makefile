@@ -3,14 +3,9 @@
 TAG=obitech/micro-obs:latest
 DOCKERFILE=Dockerfile
 
-all: build
+all: prepare test build
 
-build: prepare test build-item
-
-docker: prepare test docker-build
-
-docker-build:
-	docker build -t $(TAG) -f $(DOCKERFILE) .
+build: build-item
 
 prepare:
 	go mod tidy
@@ -22,6 +17,11 @@ test:
 
 build-item:
 	go build -o bin/item ./cmd/item
+
+docker: prepare test docker-build
+
+docker-build:
+	docker build -t $(TAG) -f $(DOCKERFILE) .
 
 clean:
 	rm bin/*
