@@ -5,9 +5,10 @@ go:
 jobs:
   include:
     - stage: "Test"
-      name: "Vetting and unit tests"
-      script: 
-        - go vet ./...
-        - go test ./...
+      name: "Standrad build process with vetting and tests"
+      script: make
+    - stage: "Docker"
+      name: "Build a Docker image"
+      script: make docker-build
 env:
   - GO111MODULE=on
