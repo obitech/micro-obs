@@ -1,5 +1,7 @@
 # [micro-obs](https://github.comobitech/microservices-observability)
 
+[![Build Status](https://travis-ci.org/obitech/micro-obs.svg?branch=master)](https://travis-ci.org/obitech/micro-obs)
+
 Demonstrating monitoring, logging and tracing of a simple microservices shop application on Kubernetes.
 
 ## Install
