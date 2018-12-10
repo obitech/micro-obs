@@ -13,6 +13,7 @@ var rootCmd = &cobra.Command{
 	Run:   runServer,
 }
 
+// Execute runs the cobra rootCommand.
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)

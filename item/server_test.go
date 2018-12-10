@@ -199,7 +199,7 @@ func TestRedis(t *testing.T) {
 							t.Errorf("Unable to EXISTS key %s: %s", tt.key, err)
 						}
 
-						var want int64 = 0
+						var want int64
 						if nr != want {
 							t.Errorf("EXISTS %s, expected: %d, got: %d", tt.key, want, nr)
 						}

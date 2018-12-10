@@ -17,13 +17,13 @@ func CheckTCPAddress(address string) error {
 
 	ip := net.ParseIP(host)
 	if ip == nil && host != "" {
-		return errors.New(fmt.Sprintf("Error: Invalid IP address: %#v", host))
+		return fmt.Errorf("Error: Invalid IP address: %#v", host)
 	}
 
 	if err := CheckPort(port); err != nil {
 		return err
 	}
-	return nil
+	return err
 }
 
 // CheckPort checks if a port is in the valid 0 <= port <= 65535 range
@@ -41,7 +41,7 @@ func CheckPort(port string) error {
 	}
 
 	if i < 0 || i > 65535 {
-		return errors.New(fmt.Sprintf("Invalid port %s", port))
+		return fmt.Errorf("Invalid port %s", port)
 	}
 
 	return nil
