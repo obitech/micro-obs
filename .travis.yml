@@ -1,3 +1,5 @@
+dist: xenial
+
 language: go
 go:
   - "1.11.x"
@@ -11,11 +13,24 @@ jobs:
         - make prepare
         - make test
     - stage: "Build"
-      name: "Building binary"
-      script: make build
+      name: "Building & verifying binary"
+      script: 
+        - make build
+        - ./bin/item --help
     - stage: "Build"
-      name: "Building Docker image"
-      script: make docker-build
+      name: "Building & pushing Docker image"
+      script: 
+        - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+        - docker build -t micro-obs .
+        - docker images
+        - docker tag micro-obs $DOCKER_USERNAME/micro-obs:$TRAVIS_BRANCH
+        - docker push $DOCKER_USERNAME/micro-obs:$TRAVIS_BRANCH
+    - stage: "Verify"
+      name: "Pulling & verifying Docker image"
+      script:
+        - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+        - docker pull $DOCKER_USERNAME/micro-obs:$TRAVIS_BRANCH
+        - docker run $DOCKER_USERNAME/micro-obs:$TRAVIS_BRANCH item --help
       
 env:
   - GO111MODULE=on

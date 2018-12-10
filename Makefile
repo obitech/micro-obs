@@ -1,6 +1,6 @@
 .PHONY: all build docker docker-build prepare test build-item clean
 
-TAG=obitech/micro-obs:latest
+TAG=obitech/micro-obs:master
 DOCKERFILE=Dockerfile
 
 all: prepare test build
