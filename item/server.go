@@ -30,10 +30,10 @@ type Server struct {
 	logger   *zap.SugaredLogger
 }
 
-// ServerOptions sets options when creating a new server
+// ServerOptions sets options when creating a new server.
 type ServerOptions func(*Server) error
 
-// NewServer creates a new Server according to options
+// NewServer creates a new Server according to options.
 func NewServer(options ...ServerOptions) (*Server, error) {
 	// Create default logger
 	logger, err := util.NewSugaredLogger("info")
@@ -106,7 +106,7 @@ func NewRedisClient(addr string) (*redis.Client, error) {
 	return c, nil
 }
 
-// SetServerAddress sets the server address
+// SetServerAddress sets the server address.
 func SetServerAddress(address string) ServerOptions {
 	return func(s *Server) error {
 		if err := util.CheckTCPAddress(address); err != nil {
@@ -118,7 +118,7 @@ func SetServerAddress(address string) ServerOptions {
 	}
 }
 
-// SetServerEndpoint sets the server endpoint address for other services to call it
+// SetServerEndpoint sets the server endpoint address for other services to call it.
 func SetServerEndpoint(address string) ServerOptions {
 	return func(s *Server) error {
 		s.endpoint = address
@@ -184,7 +184,7 @@ func (s *Server) Run() error {
 		MaxHeaderBytes: 1 << 20,
 	}
 
-	// Setting up goroutine for serving
+	// Adjusting custom settings
 	go func() {
 		s.logger.Infow("Server listening",
 			"address", s.address,
@@ -204,9 +204,9 @@ func (s *Server) Run() error {
 	return nil
 }
 
-// ServeHTTP dispatches the request to the matching mux handler
-// This function is mainly intended for testing purposes
-func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+// ServeHTTP dispatches the request to the matching mux handler.
+// This function is mainly intended for testing purposes.
+func (s *Server) serveHTTP(w http.ResponseWriter, r *http.Request) {
 	s.router.ServeHTTP(w, r)
 }
 

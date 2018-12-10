@@ -1,11 +1,12 @@
 package item
 
 import (
-	"github.com/alicebob/miniredis"
-	"github.com/go-redis/redis"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/alicebob/miniredis"
+	"github.com/go-redis/redis"
 )
 
 var (
@@ -221,7 +222,7 @@ func TestEndpoints(t *testing.T) {
 			}
 
 			w := httptest.NewRecorder()
-			s.ServeHTTP(w, req)
+			s.serveHTTP(w, req)
 			if w.Code != tt.wantStatus {
 				t.Errorf("Wrong status code on request %s %s. Got: %d, want: %d", tt.method, tt.path, w.Code, tt.wantStatus)
 			}
