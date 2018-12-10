@@ -13,6 +13,7 @@ func runServer(cmd *cobra.Command, args []string) {
 		item.SetServerAddress(address),
 		item.SetServerEndpoint(endpoint),
 		item.SetLogLevel(logLevel),
+		item.SetRedisAddress(redis),
 	)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)

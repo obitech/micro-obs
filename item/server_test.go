@@ -1,70 +1,85 @@
 package item
 
 import (
+	"github.com/alicebob/miniredis"
+	"github.com/go-redis/redis"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 )
 
-var validListeningAddr = []string{
-	"127.0.0.1:8080",
-	":80",
-	":8080",
-	"127.0.0.1:80",
-	"192.0.2.1:http",
-}
+var (
+	validListeningAddr = []string{
+		"127.0.0.1:8080",
+		":80",
+		":8080",
+		"127.0.0.1:80",
+		"192.0.2.1:http",
+	}
 
-var logLevels = []struct {
-	level string
-	want  error
-}{
-	{"warn", nil},
-	{"info", nil},
-	{"debug", nil},
-	{"error", nil},
-	{"", nil},
-	{"asdo1293", nil},
-	{"😍", nil},
-	{"👾 🙇 💁 🙅 🙆 🙋 🙎 🙍", nil},
-	{"﷽", nil},
-}
+	invalidListeningAddr = []string{
+		":9999999",
+		":-1",
+		"asokdklasd",
+		"0.0.0.0.0.0:80",
+		"256.0.0.1:80",
+	}
 
-var validRedisAddr = []string{
-	"redis://127.0.0.1:6379/0",
-	"redis://:qwerty@localhost:6379/1",
-	"redis://test",
-}
+	logLevels = []struct {
+		level string
+		want  error
+	}{
+		{"warn", nil},
+		{"info", nil},
+		{"debug", nil},
+		{"error", nil},
+		{"", nil},
+		{"asdo1293", nil},
+		{"😍", nil},
+		{"👾 🙇 💁 🙅 🙆 🙋 🙎 🙍", nil},
+		{"﷽", nil},
+	}
 
-var invalidRedisAddr = []string{
-	"http://localhost:6379",
-	"http://google.com",
-	"https://google.com",
-	"ftp://ftp.fu-berlin.de:21",
-}
+	validRedisAddr = []string{
+		"redis://127.0.0.1:6379/0",
+		"redis://:qwerty@localhost:6379/1",
+		"redis://test",
+	}
 
-var validEndpointAddr = append(validListeningAddr, []string{
-	"golang.org:80",
-	"golang.org:http",
-}...)
+	invalidRedisAddr = []string{
+		"http://localhost:6379",
+		"http://google.com",
+		"https://google.com",
+		"ftp://ftp.fu-berlin.de:21",
+	}
 
-var invalidListeningAddr = []string{
-	":9999999",
-	":-1",
-	"asokdklasd",
-	"0.0.0.0.0.0:80",
-	"256.0.0.1:80",
-}
+	validEndpointAddr = append(validListeningAddr, []string{
+		"golang.org:80",
+		"golang.org:http",
+	}...)
 
-var validEndpoints = []struct {
-	method     string
-	path       string
-	wantStatus int
-}{
-	{"GET", "/", 200},
-	{"GET", "/healthz", 200},
-	{"GET", "/asdasd", 404},
-	{"GET", "/metrics", 200},
-}
+	validEndpoints = []struct {
+		method     string
+		path       string
+		wantStatus int
+	}{
+		{"GET", "/", 200},
+		{"GET", "/healthz", 200},
+		{"GET", "/asdasd", 404},
+		{"GET", "/metrics", 200},
+	}
+
+	redisSampleKV = []struct {
+		key   string
+		value string
+	}{
+		{"foo", "bar"},
+		{"hello", "world"},
+		{"😍", "test"},
+		{"test", "😍"},
+		{"👾", "🙅"},
+	}
+)
 
 func TestNewServer(t *testing.T) {
 	t.Run("Creating new default server", func(t *testing.T) {
@@ -122,6 +137,75 @@ func TestNewServer(t *testing.T) {
 					t.Errorf("Expected error when creating item server with listening address %s, got %s", tt, err)
 				}
 			}
+		})
+	})
+}
+
+func TestRedis(t *testing.T) {
+	s, err := miniredis.Run()
+	if err != nil {
+		t.Errorf("Unable to create miniredis server: %s", err)
+	}
+	defer s.Close()
+
+	// Setting sample data
+	for _, v := range redisSampleKV {
+		if err := s.Set(v.key, v.value); err != nil {
+			t.Errorf("Unable to set sample data: %s", err)
+		}
+	}
+
+	t.Run("Testing go-redis", func(t *testing.T) {
+		// Connecting
+		c := redis.NewClient(&redis.Options{
+			Addr: s.Addr(),
+		})
+		if _, err := c.Ping().Result(); err != nil {
+			t.Errorf("Unable to connect to miniredis server: %s", err)
+		}
+
+		t.Run("Simple data structures", func(t *testing.T) {
+			t.Run("Retrieving sample data", func(t *testing.T) {
+				for _, tt := range redisSampleKV {
+					r, err := c.Get(tt.key).Result()
+					if err != nil {
+						t.Errorf("Unable to GET key %s: %s", tt.key, err)
+					}
+
+					if r != tt.value {
+						t.Errorf("GET %s, expected: %s, got: %s", tt.key, r, tt.value)
+					}
+				}
+			})
+
+			t.Run("Deleting sample data", func(t *testing.T) {
+				t.Run("Deleting keys", func(t *testing.T) {
+					for _, tt := range redisSampleKV {
+						nr, err := c.Del(tt.key).Result()
+						if err != nil {
+							t.Errorf("Unable to DEL key %s: %s", tt.key, err)
+						}
+
+						var want int64 = 1
+						if nr != want {
+							t.Errorf("DEL %s, expected: %d, got: %d", tt.key, want, nr)
+						}
+					}
+				})
+				t.Run("Testing for existence", func(t *testing.T) {
+					for _, tt := range redisSampleKV {
+						nr, err := c.Exists(tt.key).Result()
+						if err != nil {
+							t.Errorf("Unable to EXISTS key %s: %s", tt.key, err)
+						}
+
+						var want int64 = 0
+						if nr != want {
+							t.Errorf("EXISTS %s, expected: %d, got: %d", tt.key, want, nr)
+						}
+					}
+				})
+			})
 		})
 	})
 }
