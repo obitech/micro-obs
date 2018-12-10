@@ -4,7 +4,7 @@
 
 Demonstrating monitoring, logging and tracing of a simple microservices shop application on Kubernetes.
 
-## Install
+## Build it
 
 To build it from source you need [Go 1.11+](https://golang.org/dl/) installed.
 
@@ -29,20 +29,33 @@ make docker TAG=yourname/yourimage
 # ...
 ```
 
-## Usage
+## Run it
+
+### Docker
+
+Run:
+
+```bash
+docker-compose up -d
+```
+
+### Binary
+
+Start redis:
+
+```bash
+docker-compose up -d redis
+```
 
 Start the item server locally:
 
 ```bash
 ./bin/item
-{"level":"info","ts":1544121600.6489222,"msg":"Server listening","address":":8080","endpoint":"127.0.0.1:8080"}
+{"level":"info","ts":1544472652.93183,"msg":"Testing redis connection"}
+{"level":"info","ts":1544472652.9464881,"msg":"Server listening","address":":8080","endpoint":"127.0.0.1:8080"}
 ```
 
-Or via Docker:
-
-```bash
-docker run -p 8080:8080 obitech/micro-obs item
-```
+## Use it
 
 Do some `curl`s:
 

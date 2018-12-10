@@ -5,3 +5,13 @@ services:
     image: redis:5
     ports:
       - "6379:6379"
+    restart: always
+  item:
+    container_name: item
+    image: obitech/micro-obs:master
+    command: item -r redis://redis:6379/0
+    ports:
+      - "8080:8080"
+    depends_on:
+      - redis
+    restart: always
