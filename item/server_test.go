@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-var validListeningAddresses = []string{
+var validListeningAddr = []string{
 	"127.0.0.1:8080",
 	":80",
 	":8080",
@@ -29,12 +29,25 @@ var logLevels = []struct {
 	{"﷽", nil},
 }
 
-var validEndpointAddresses = append(validListeningAddresses, []string{
+var validRedisAddr = []string{
+	"redis://127.0.0.1:6379/0",
+	"redis://:qwerty@localhost:6379/1",
+	"redis://test",
+}
+
+var invalidRedisAddr = []string{
+	"http://localhost:6379",
+	"http://google.com",
+	"https://google.com",
+	"ftp://ftp.fu-berlin.de:21",
+}
+
+var validEndpointAddr = append(validListeningAddr, []string{
 	"golang.org:80",
 	"golang.org:http",
 }...)
 
-var invalidListeningAddresses = []string{
+var invalidListeningAddr = []string{
 	":9999999",
 	":-1",
 	"asokdklasd",
@@ -60,7 +73,7 @@ func TestNewServer(t *testing.T) {
 		}
 	})
 
-	t.Run("Creating new default server with different log levels", func(t *testing.T) {
+	t.Run("Creating new default server with custom log levels", func(t *testing.T) {
 		for _, tt := range logLevels {
 			if _, err := NewServer(SetLogLevel(tt.level)); tt.want != nil {
 				t.Errorf("error while creating new item server: %s", err)
@@ -68,30 +81,48 @@ func TestNewServer(t *testing.T) {
 		}
 	})
 
-	t.Run("Creating new item server with valid addresses", func(t *testing.T) {
-		for _, listen := range validListeningAddresses {
-			for _, ep := range validEndpointAddresses {
-				_, err := NewServer(
-					SetServerAddress(listen),
-					SetServerEndpoint(ep),
-				)
-				if err != nil {
+	t.Run("Creating new default server with custom redis address", func(t *testing.T) {
+		t.Run("Checking valid addresses", func(t *testing.T) {
+			for _, v := range validRedisAddr {
+				if _, err := NewServer(SetRedisAddress(v)); err != nil {
 					t.Errorf("error while creating new item server: %s", err)
 				}
 			}
-		}
+		})
+
+		t.Run("Checking invalid addresses", func(t *testing.T) {
+			for _, v := range invalidRedisAddr {
+				if _, err := NewServer(SetRedisAddress(v)); err == nil {
+					t.Errorf("Expected error while setting redis address to %s, got %s", v, err)
+				}
+			}
+		})
 	})
 
-	t.Run("Creating new server with invalid addresses", func(t *testing.T) {
-		for _, tt := range invalidListeningAddresses {
-			_, err := NewServer(
-				SetServerAddress(tt),
-				SetServerEndpoint(tt),
-			)
-			if err == nil {
-				t.Errorf("Expected error when creating item server with listening address %s, got %s", tt, err)
+	t.Run("Creating new item server with custom listening addresses", func(t *testing.T) {
+		t.Run("Checking valid addresses", func(t *testing.T) {
+			for _, listen := range validListeningAddr {
+				for _, ep := range validEndpointAddr {
+					_, err := NewServer(
+						SetServerAddress(listen),
+						SetServerEndpoint(ep),
+					)
+					if err != nil {
+						t.Errorf("error while creating new item server: %s", err)
+					}
+				}
 			}
-		}
+		})
+		t.Run("Checking invalid addresses", func(t *testing.T) {
+			for _, tt := range invalidListeningAddr {
+				if _, err := NewServer(
+					SetServerAddress(tt),
+					SetServerEndpoint(tt),
+				); err == nil {
+					t.Errorf("Expected error when creating item server with listening address %s, got %s", tt, err)
+				}
+			}
+		})
 	})
 }
 

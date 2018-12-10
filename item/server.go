@@ -138,7 +138,27 @@ func SetLogLevel(level string) ServerOptions {
 	}
 }
 
-// Run starts a Server and shuts it down properly on a SIGINT and SIGTERM
+// SetRedisAddress sets a custom address for the redis connection.
+func SetRedisAddress(address string) ServerOptions {
+	return func(s *Server) error {
+		// Close old client
+		err := s.redis.Close()
+		if err != nil {
+			s.logger.Warnw("Error while closing old redis client",
+				"error", err,
+			)
+		}
+
+		rc, err := NewRedisClient(address)
+		if err != nil {
+			return err
+		}
+		s.redis = rc
+		return nil
+	}
+}
+
+// Run starts a Server and shuts it down properly on a SIGINT and SIGTERM.
 func (s *Server) Run() error {
 	defer s.logger.Sync()
 	defer s.redis.Close()
@@ -200,5 +220,9 @@ func (s *Server) Stop() {
 	defer cancel()
 
 	s.logger.Info("Shutting down")
-	s.server.Shutdown(ctx)
+	if err := s.server.Shutdown(ctx); err != nil {
+		s.logger.Errorw("HTTP server shutdown",
+			"error", err,
+		)
+	}
 }
