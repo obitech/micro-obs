@@ -7,13 +7,14 @@ jobs:
     - stage: "Test"
       name: "Vetting and unit tests"
       script:
+        - go get -u golang.org/x/lint/golint
         - make prepare
         - make test
     - stage: "Build"
-      name: "Building a binary"
+      name: "Building binary"
       script: make build
     - stage: "Build"
-      name: "Building a Docker image"
+      name: "Building Docker image"
       script: make docker-build
       
 env:
