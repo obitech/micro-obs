@@ -6,7 +6,9 @@ jobs:
   include:
     - stage: "Test"
       name: "Vetting and unit tests"
-      script: make test
+      script:
+        - make prepare
+        - make test
     - stage: "Build"
       name: "Building a binary"
       script: make build
