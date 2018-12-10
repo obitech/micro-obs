@@ -7,9 +7,11 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"sync/atomic"
 	"syscall"
 	"time"
 
+	"github.com/go-redis/redis"
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
@@ -21,6 +23,8 @@ import (
 type Server struct {
 	address  string
 	endpoint string
+	redis    *redis.Client
+	redisOps uint64
 	server   *http.Server
 	router   *mux.Router
 	logger   *zap.SugaredLogger
@@ -31,16 +35,20 @@ type ServerOptions func(*Server) error
 
 // NewServer creates a new Server according to options
 func NewServer(options ...ServerOptions) (*Server, error) {
-	// Create logger
+	// Create default logger
 	logger, err := util.NewSugaredLogger("info")
 	if err != nil {
 		return nil, errors.Wrap(err, "Unable to create SugaredLogger")
 	}
 
+	// Create default redis client
+	rc, _ := NewRedisClient("redis://127.0.0.1:6379/0")
+
 	// Sane defaults
 	s := &Server{
 		address:  ":8080",
 		endpoint: "127.0.0.1:9090",
+		redis:    rc,
 		logger:   logger,
 		router:   util.NewRouter(),
 	}
@@ -52,6 +60,24 @@ func NewServer(options ...ServerOptions) (*Server, error) {
 		}
 	}
 
+	// Instrumenting redis
+	s.redis.WrapProcess(func(old func(cmd redis.Cmder) error) func(cmd redis.Cmder) error {
+		return func(cmd redis.Cmder) error {
+			atomic.AddUint64(&s.redisOps, 1)
+			ops := atomic.LoadUint64(&s.redisOps)
+			s.logger.Debugw("redis sent",
+				"count", ops,
+				"cmd", cmd,
+			)
+			err := old(cmd)
+			s.logger.Debugw("redis received",
+				"count", ops,
+				"cmd", cmd,
+			)
+			return err
+		}
+	})
+
 	s.logger.Debugw("Creating new server",
 		"address", s.address,
 		"endpoint", s.endpoint,
@@ -61,6 +87,23 @@ func NewServer(options ...ServerOptions) (*Server, error) {
 	s.createRoutes()
 
 	return s, nil
+}
+
+// NewRedisClient creates a new go-redis/redis client according to passed options.
+// Address needs to be a valid redis URL, e.g. redis://127.0.0.1:6379/0 or redis://:qwerty@localhost:6379/1
+func NewRedisClient(addr string) (*redis.Client, error) {
+	opt, err := redis.ParseURL(addr)
+	if err != nil {
+		return nil, err
+	}
+
+	c := redis.NewClient(&redis.Options{
+		Addr:     opt.Addr,
+		Password: opt.Password,
+		DB:       opt.DB,
+	})
+
+	return c, nil
 }
 
 // SetServerAddress sets the server address
@@ -98,6 +141,18 @@ func SetLogLevel(level string) ServerOptions {
 // Run starts a Server and shuts it down properly on a SIGINT and SIGTERM
 func (s *Server) Run() error {
 	defer s.logger.Sync()
+	defer s.redis.Close()
+
+	// Checking for redis connection
+	s.logger.Info("Testing redis connection")
+	pong, err := s.redis.Ping().Result()
+	if err != nil {
+		return errors.Wrap(err, "Unable to connect to redis server")
+	}
+	s.logger.Infow("Redis up",
+		"cmd", "PING",
+		"result", pong,
+	)
 
 	// Create TCP listener
 	l, err := net.Listen("tcp", s.address)
