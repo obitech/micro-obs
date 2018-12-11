@@ -80,6 +80,19 @@ var (
 		{"test", "😍"},
 		{"👾", "🙅"},
 	}
+
+	redisSampleHash = []struct {
+		item string
+		kv   map[string]string
+	}{
+		{"hash1", map[string]string{
+			"foo": "bar",
+		}},
+		{"orange", map[string]string{
+			"qty":  string("5"),
+			"desc": "A jummy fruit",
+		}},
+	}
 )
 
 func TestNewServer(t *testing.T) {
@@ -156,6 +169,12 @@ func TestRedis(t *testing.T) {
 		}
 	}
 
+	for _, data := range redisSampleHash {
+		for k, v := range data.kv {
+			s.HSet(data.item, k, v)
+		}
+	}
+
 	t.Run("Testing go-redis", func(t *testing.T) {
 		// Connecting
 		c := redis.NewClient(&redis.Options{
@@ -172,9 +191,20 @@ func TestRedis(t *testing.T) {
 					if err != nil {
 						t.Errorf("Unable to GET key %s: %s", tt.key, err)
 					}
-
 					if r != tt.value {
 						t.Errorf("GET %s, expected: %s, got: %s", tt.key, r, tt.value)
+					}
+				}
+
+				for _, tt := range redisSampleHash {
+					r, err := c.HGetAll(tt.item).Result()
+					if err != nil {
+						t.Errorf("Unable to HGetAll key %s: %s", tt.item, err)
+					}
+					for k, v := range tt.kv {
+						if r[k] != v {
+							t.Errorf("HGetAll %s, expected: %s => %s, got: %s => %s", tt.item, k, v, k ,r[k])
+						}
 					}
 				}
 			})
@@ -192,6 +222,18 @@ func TestRedis(t *testing.T) {
 							t.Errorf("DEL %s, expected: %d, got: %d", tt.key, want, nr)
 						}
 					}
+
+					for _, tt := range redisSampleHash {
+						nr, err := c.Del(tt.item).Result()
+						if err != nil {
+							t.Errorf("Unable to DEL key %s: %s", tt.item, err)
+						}
+
+						var want int64 = 1
+						if nr != want {
+							t.Errorf("DEL %s, expected: %d, got: %d", tt.item, want, nr)
+						}
+					}
 				})
 				t.Run("Testing for existence", func(t *testing.T) {
 					for _, tt := range redisSampleKV {
@@ -203,6 +245,18 @@ func TestRedis(t *testing.T) {
 						var want int64
 						if nr != want {
 							t.Errorf("EXISTS %s, expected: %d, got: %d", tt.key, want, nr)
+						}
+					}
+
+					for _, tt := range redisSampleHash {
+						nr, err := c.Exists(tt.item).Result()
+						if err != nil {
+							t.Errorf("Unable to EXISTS key %s: %s", tt.item, err)
+						}
+
+						var want int64
+						if nr != want {
+							t.Errorf("EXISTS %s, expected: %d, got: %d", tt.item, want, nr)
 						}
 					}
 				})
