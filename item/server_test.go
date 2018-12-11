@@ -82,8 +82,8 @@ var (
 	}
 
 	redisSampleHash = []struct {
-		item string
-		kv   map[string]string
+		key string
+		fv  map[string]string
 	}{
 		{"hash1", map[string]string{
 			"foo": "bar",
@@ -94,6 +94,64 @@ var (
 		}},
 	}
 )
+
+func redisGET(c *redis.Client, k, want string, t *testing.T) {
+	r, err := c.Get(k).Result()
+	if err != nil {
+		t.Errorf("Unable to GET %s: %s", k, err)
+	}
+	if r != want {
+		t.Errorf("GET %s, expected: %s, got: %s", k, r, want)
+	}
+}
+
+func redisSET(c *redis.Client, k, v string, t *testing.T) {
+	if err := c.Set(k, v, 0).Err(); err != nil {
+		t.Errorf("Unable to SET %s -> %s: %s", k, v, err)
+	}
+}
+
+func redisHSET(c *redis.Client, k, f, v string, want bool, t *testing.T) {
+	r, err := c.HSet(k, f, v).Result()
+	if err != nil {
+		t.Errorf("Unable to HSET %s %s %s: %s", k, f, v, err)
+	}
+	if r != want {
+		t.Errorf("HSET %s %s %s, expected: %t, got: %t", k, f, v, want, r)
+	}
+}
+
+func redisDEL(c *redis.Client, k string, want int64, t *testing.T) {
+	nr, err := c.Del(k).Result()
+	if err != nil {
+		t.Errorf("Unable to DEL %s: %s", k, err)
+	}
+	if nr != want {
+		t.Errorf("DEL %s, expected: %d, got: %d", k, want, nr)
+	}
+}
+
+func redisEXISTS(c *redis.Client, k string, want int64, t *testing.T) {
+	nr, err := c.Exists(k).Result()
+	if err != nil {
+		t.Errorf("Unable to EXISTS %s: %s", k, err)
+	}
+	if nr != want {
+		t.Errorf("EXISTS %s, expected: %d, got: %d", k, want, nr)
+	}
+}
+
+func redisHGETALL(c *redis.Client, k string, want map[string]string, t *testing.T) {
+	r, err := c.HGetAll(k).Result()
+	if err != nil {
+		t.Errorf("Unable to HGETALL %s: %s", k, err)
+	}
+	for f, v := range want {
+		if r[f] != v {
+			t.Errorf("HGETALL %s, expected: %s => %s, got: %s => %s", k, f, v, f, r[f])
+		}
+	}
+}
 
 func TestNewServer(t *testing.T) {
 	t.Run("Creating new default server", func(t *testing.T) {
@@ -170,8 +228,8 @@ func TestRedis(t *testing.T) {
 	}
 
 	for _, data := range redisSampleHash {
-		for k, v := range data.kv {
-			s.HSet(data.item, k, v)
+		for f, v := range data.fv {
+			s.HSet(data.key, f, v)
 		}
 	}
 
@@ -187,23 +245,17 @@ func TestRedis(t *testing.T) {
 		t.Run("Simple data structures", func(t *testing.T) {
 			t.Run("Retrieving sample data", func(t *testing.T) {
 				for _, tt := range redisSampleKV {
-					r, err := c.Get(tt.key).Result()
-					if err != nil {
-						t.Errorf("Unable to GET key %s: %s", tt.key, err)
-					}
-					if r != tt.value {
-						t.Errorf("GET %s, expected: %s, got: %s", tt.key, r, tt.value)
-					}
+					redisGET(c, tt.key, tt.value, t)
 				}
 
 				for _, tt := range redisSampleHash {
-					r, err := c.HGetAll(tt.item).Result()
+					r, err := c.HGetAll(tt.key).Result()
 					if err != nil {
-						t.Errorf("Unable to HGetAll key %s: %s", tt.item, err)
+						t.Errorf("Unable to HGetAll key %s: %s", tt.key, err)
 					}
-					for k, v := range tt.kv {
-						if r[k] != v {
-							t.Errorf("HGetAll %s, expected: %s => %s, got: %s => %s", tt.item, k, v, k ,r[k])
+					for f, v := range tt.fv {
+						if r[f] != v {
+							t.Errorf("HGetAll %s, expected: %s => %s, got: %s => %s", tt.key, f, v, f, r[f])
 						}
 					}
 				}
@@ -212,52 +264,54 @@ func TestRedis(t *testing.T) {
 			t.Run("Deleting sample data", func(t *testing.T) {
 				t.Run("Deleting keys", func(t *testing.T) {
 					for _, tt := range redisSampleKV {
-						nr, err := c.Del(tt.key).Result()
-						if err != nil {
-							t.Errorf("Unable to DEL key %s: %s", tt.key, err)
-						}
-
-						var want int64 = 1
-						if nr != want {
-							t.Errorf("DEL %s, expected: %d, got: %d", tt.key, want, nr)
-						}
+						redisDEL(c, tt.key, 1, t)
 					}
 
 					for _, tt := range redisSampleHash {
-						nr, err := c.Del(tt.item).Result()
-						if err != nil {
-							t.Errorf("Unable to DEL key %s: %s", tt.item, err)
-						}
-
-						var want int64 = 1
-						if nr != want {
-							t.Errorf("DEL %s, expected: %d, got: %d", tt.item, want, nr)
-						}
+						redisDEL(c, tt.key, 1, t)
 					}
 				})
 				t.Run("Testing for existence", func(t *testing.T) {
 					for _, tt := range redisSampleKV {
-						nr, err := c.Exists(tt.key).Result()
-						if err != nil {
-							t.Errorf("Unable to EXISTS key %s: %s", tt.key, err)
-						}
-
-						var want int64
-						if nr != want {
-							t.Errorf("EXISTS %s, expected: %d, got: %d", tt.key, want, nr)
-						}
+						redisEXISTS(c, tt.key, 0, t)
 					}
 
 					for _, tt := range redisSampleHash {
-						nr, err := c.Exists(tt.item).Result()
-						if err != nil {
-							t.Errorf("Unable to EXISTS key %s: %s", tt.item, err)
-						}
+						redisEXISTS(c, tt.key, 0, t)
+					}
+				})
+			})
 
-						var want int64
-						if nr != want {
-							t.Errorf("EXISTS %s, expected: %d, got: %d", tt.item, want, nr)
+			t.Run("Recreating sample data", func(t *testing.T) {
+				t.Run("Setting data", func(t *testing.T) {
+					for _, tt := range redisSampleKV {
+						redisSET(c, tt.key, tt.value, t)
+					}
+
+					for _, tt := range redisSampleHash {
+						for f, v := range tt.fv {
+							redisHSET(c, tt.key, f, v, true, t)
 						}
+					}
+				})
+
+				t.Run("Testing for existence", func(t *testing.T) {
+					for _, tt := range redisSampleKV {
+						redisEXISTS(c, tt.key, 1, t)
+					}
+
+					for _, tt := range redisSampleHash {
+						redisEXISTS(c, tt.key, 1, t)
+					}
+				})
+
+				t.Run("Getting data", func(t *testing.T) {
+					for _, tt := range redisSampleKV {
+						redisGET(c, tt.key, tt.value, t)
+					}
+
+					for _, tt := range redisSampleHash {
+						redisHGETALL(c, tt.key, tt.fv, t)
 					}
 				})
 			})

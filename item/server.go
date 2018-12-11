@@ -17,9 +17,7 @@ import (
 	"go.uber.org/zap"
 )
 
-// Server is a wrapper for a HTTP server, with several additional information attached suche as a
-// listener and endpoint address, a router and a logger.
-// Since all routes hang off the Server, handlers can easily access the database session.
+// Server is a wrapper for a HTTP server, with dependencies attached.
 type Server struct {
 	address  string
 	endpoint string
