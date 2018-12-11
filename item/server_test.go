@@ -95,60 +95,60 @@ var (
 	}
 )
 
-func redisGET(c *redis.Client, k, want string, t *testing.T) {
+func helperRedisGET(c *redis.Client, k, want string, t *testing.T) {
 	r, err := c.Get(k).Result()
 	if err != nil {
-		t.Errorf("Unable to GET %s: %s", k, err)
+		t.Errorf("Unable to GET %#v: %#v", k, err)
 	}
 	if r != want {
-		t.Errorf("GET %s, expected: %s, got: %s", k, r, want)
+		t.Errorf("GET %#v, expected: %#v, got: %#v", k, r, want)
 	}
 }
 
-func redisSET(c *redis.Client, k, v string, t *testing.T) {
+func helperRedisSET(c *redis.Client, k, v string, t *testing.T) {
 	if err := c.Set(k, v, 0).Err(); err != nil {
-		t.Errorf("Unable to SET %s -> %s: %s", k, v, err)
+		t.Errorf("Unable to SET %#v -> %#v: %#v", k, v, err)
 	}
 }
 
-func redisHSET(c *redis.Client, k, f, v string, want bool, t *testing.T) {
+func helperRedisHSET(c *redis.Client, k, f, v string, want bool, t *testing.T) {
 	r, err := c.HSet(k, f, v).Result()
 	if err != nil {
-		t.Errorf("Unable to HSET %s %s %s: %s", k, f, v, err)
+		t.Errorf("Unable to HSET %#v %#v %#v: %#v", k, f, v, err)
 	}
 	if r != want {
-		t.Errorf("HSET %s %s %s, expected: %t, got: %t", k, f, v, want, r)
+		t.Errorf("HSET %#v %#v %#v, expected: %t, got: %t", k, f, v, want, r)
 	}
 }
 
-func redisDEL(c *redis.Client, k string, want int64, t *testing.T) {
+func helperRedisDEL(c *redis.Client, k string, want int64, t *testing.T) {
 	nr, err := c.Del(k).Result()
 	if err != nil {
-		t.Errorf("Unable to DEL %s: %s", k, err)
+		t.Errorf("Unable to DEL %#v: %#v", k, err)
 	}
 	if nr != want {
-		t.Errorf("DEL %s, expected: %d, got: %d", k, want, nr)
+		t.Errorf("DEL %#v, expected: %d, got: %d", k, want, nr)
 	}
 }
 
-func redisEXISTS(c *redis.Client, k string, want int64, t *testing.T) {
+func helperRedisEXISTS(c *redis.Client, k string, want int64, t *testing.T) {
 	nr, err := c.Exists(k).Result()
 	if err != nil {
-		t.Errorf("Unable to EXISTS %s: %s", k, err)
+		t.Errorf("Unable to EXISTS %#v: %#v", k, err)
 	}
 	if nr != want {
-		t.Errorf("EXISTS %s, expected: %d, got: %d", k, want, nr)
+		t.Errorf("EXISTS %#v, expected: %d, got: %d", k, want, nr)
 	}
 }
 
-func redisHGETALL(c *redis.Client, k string, want map[string]string, t *testing.T) {
+func helperRedisHGETALL(c *redis.Client, k string, want map[string]string, t *testing.T) {
 	r, err := c.HGetAll(k).Result()
 	if err != nil {
-		t.Errorf("Unable to HGETALL %s: %s", k, err)
+		t.Errorf("Unable to HGETALL %#v: %#v", k, err)
 	}
 	for f, v := range want {
 		if r[f] != v {
-			t.Errorf("HGETALL %s, expected: %s => %s, got: %s => %s", k, f, v, f, r[f])
+			t.Errorf("HGETALL %#v, expected: %#v => %#v, got: %#v => %#v", k, f, v, f, r[f])
 		}
 	}
 }
@@ -156,14 +156,14 @@ func redisHGETALL(c *redis.Client, k string, want map[string]string, t *testing.
 func TestNewServer(t *testing.T) {
 	t.Run("Creating new default server", func(t *testing.T) {
 		if _, err := NewServer(); err != nil {
-			t.Errorf("error while creating new item server: %s", err)
+			t.Errorf("error while creating new item server: %#v", err)
 		}
 	})
 
 	t.Run("Creating new default server with custom log levels", func(t *testing.T) {
 		for _, tt := range logLevels {
 			if _, err := NewServer(SetLogLevel(tt.level)); tt.want != nil {
-				t.Errorf("error while creating new item server: %s", err)
+				t.Errorf("error while creating new item server: %#v", err)
 			}
 		}
 	})
@@ -172,7 +172,7 @@ func TestNewServer(t *testing.T) {
 		t.Run("Checking valid addresses", func(t *testing.T) {
 			for _, v := range validRedisAddr {
 				if _, err := NewServer(SetRedisAddress(v)); err != nil {
-					t.Errorf("error while creating new item server: %s", err)
+					t.Errorf("error while creating new item server: %#v", err)
 				}
 			}
 		})
@@ -180,7 +180,7 @@ func TestNewServer(t *testing.T) {
 		t.Run("Checking invalid addresses", func(t *testing.T) {
 			for _, v := range invalidRedisAddr {
 				if _, err := NewServer(SetRedisAddress(v)); err == nil {
-					t.Errorf("Expected error while setting redis address to %s, got %s", v, err)
+					t.Errorf("Expected error while setting redis address to %#v, got %#v", v, err)
 				}
 			}
 		})
@@ -195,7 +195,7 @@ func TestNewServer(t *testing.T) {
 						SetServerEndpoint(ep),
 					)
 					if err != nil {
-						t.Errorf("error while creating new item server: %s", err)
+						t.Errorf("error while creating new item server: %#v", err)
 					}
 				}
 			}
@@ -206,7 +206,7 @@ func TestNewServer(t *testing.T) {
 					SetServerAddress(tt),
 					SetServerEndpoint(tt),
 				); err == nil {
-					t.Errorf("Expected error when creating item server with listening address %s, got %s", tt, err)
+					t.Errorf("Expected error when creating item server with listening address %#v, got %#v", tt, err)
 				}
 			}
 		})
@@ -216,14 +216,14 @@ func TestNewServer(t *testing.T) {
 func TestRedis(t *testing.T) {
 	s, err := miniredis.Run()
 	if err != nil {
-		t.Errorf("Unable to create miniredis server: %s", err)
+		t.Errorf("Unable to create miniredis server: %#v", err)
 	}
 	defer s.Close()
 
 	// Setting sample data
 	for _, v := range redisSampleKV {
 		if err := s.Set(v.key, v.value); err != nil {
-			t.Errorf("Unable to set sample data: %s", err)
+			t.Errorf("Unable to set sample data: %#v", err)
 		}
 	}
 
@@ -239,23 +239,23 @@ func TestRedis(t *testing.T) {
 			Addr: s.Addr(),
 		})
 		if _, err := c.Ping().Result(); err != nil {
-			t.Errorf("Unable to connect to miniredis server: %s", err)
+			t.Errorf("Unable to connect to miniredis server: %#v", err)
 		}
 
 		t.Run("Simple data structures", func(t *testing.T) {
 			t.Run("Retrieving sample data", func(t *testing.T) {
 				for _, tt := range redisSampleKV {
-					redisGET(c, tt.key, tt.value, t)
+					helperRedisGET(c, tt.key, tt.value, t)
 				}
 
 				for _, tt := range redisSampleHash {
 					r, err := c.HGetAll(tt.key).Result()
 					if err != nil {
-						t.Errorf("Unable to HGetAll key %s: %s", tt.key, err)
+						t.Errorf("Unable to HGetAll key %#v: %#v", tt.key, err)
 					}
 					for f, v := range tt.fv {
 						if r[f] != v {
-							t.Errorf("HGetAll %s, expected: %s => %s, got: %s => %s", tt.key, f, v, f, r[f])
+							t.Errorf("HGetAll %#v, expected: %#v => %#v, got: %#v => %#v", tt.key, f, v, f, r[f])
 						}
 					}
 				}
@@ -264,20 +264,20 @@ func TestRedis(t *testing.T) {
 			t.Run("Deleting sample data", func(t *testing.T) {
 				t.Run("Deleting keys", func(t *testing.T) {
 					for _, tt := range redisSampleKV {
-						redisDEL(c, tt.key, 1, t)
+						helperRedisDEL(c, tt.key, 1, t)
 					}
 
 					for _, tt := range redisSampleHash {
-						redisDEL(c, tt.key, 1, t)
+						helperRedisDEL(c, tt.key, 1, t)
 					}
 				})
 				t.Run("Testing for existence", func(t *testing.T) {
 					for _, tt := range redisSampleKV {
-						redisEXISTS(c, tt.key, 0, t)
+						helperRedisEXISTS(c, tt.key, 0, t)
 					}
 
 					for _, tt := range redisSampleHash {
-						redisEXISTS(c, tt.key, 0, t)
+						helperRedisEXISTS(c, tt.key, 0, t)
 					}
 				})
 			})
@@ -285,33 +285,33 @@ func TestRedis(t *testing.T) {
 			t.Run("Recreating sample data", func(t *testing.T) {
 				t.Run("Setting data", func(t *testing.T) {
 					for _, tt := range redisSampleKV {
-						redisSET(c, tt.key, tt.value, t)
+						helperRedisSET(c, tt.key, tt.value, t)
 					}
 
 					for _, tt := range redisSampleHash {
 						for f, v := range tt.fv {
-							redisHSET(c, tt.key, f, v, true, t)
+							helperRedisHSET(c, tt.key, f, v, true, t)
 						}
 					}
 				})
 
 				t.Run("Testing for existence", func(t *testing.T) {
 					for _, tt := range redisSampleKV {
-						redisEXISTS(c, tt.key, 1, t)
+						helperRedisEXISTS(c, tt.key, 1, t)
 					}
 
 					for _, tt := range redisSampleHash {
-						redisEXISTS(c, tt.key, 1, t)
+						helperRedisEXISTS(c, tt.key, 1, t)
 					}
 				})
 
 				t.Run("Getting data", func(t *testing.T) {
 					for _, tt := range redisSampleKV {
-						redisGET(c, tt.key, tt.value, t)
+						helperRedisGET(c, tt.key, tt.value, t)
 					}
 
 					for _, tt := range redisSampleHash {
-						redisHGETALL(c, tt.key, tt.fv, t)
+						helperRedisHGETALL(c, tt.key, tt.fv, t)
 					}
 				})
 			})
@@ -326,13 +326,13 @@ func TestEndpoints(t *testing.T) {
 		for _, tt := range validEndpoints {
 			req, err := http.NewRequest(tt.method, tt.path, nil)
 			if err != nil {
-				t.Errorf("Error creating request %s %s : %s", tt.method, tt.path, err)
+				t.Errorf("Error creating request %#v %#v : %#v", tt.method, tt.path, err)
 			}
 
 			w := httptest.NewRecorder()
 			s.serveHTTP(w, req)
 			if w.Code != tt.wantStatus {
-				t.Errorf("Wrong status code on request %s %s. Got: %d, want: %d", tt.method, tt.path, w.Code, tt.wantStatus)
+				t.Errorf("Wrong status code on request %#v %#v. Got: %d, want: %d", tt.method, tt.path, w.Code, tt.wantStatus)
 			}
 		}
 	})
