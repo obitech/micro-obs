@@ -1,12 +1,14 @@
 package item
 
 import (
-	"github.com/obitech/micro-obs/util"
 	"strconv"
 	"strings"
+
+	"github.com/obitech/micro-obs/util"
 )
 
 // Item defines a shop item with attributes. ID should be a HashID of the name.
+// // See https://hashids.org for more info.
 type Item struct {
 	Name string
 	ID   string

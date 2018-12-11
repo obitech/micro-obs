@@ -13,12 +13,12 @@ import (
 func CheckTCPAddress(address string) error {
 	host, port, err := net.SplitHostPort(address)
 	if err != nil {
-		fmt.Printf("Invalid host: %s\n", address)
+		return fmt.Errorf("invalid host: %s", address)
 	}
 
 	ip := net.ParseIP(host)
 	if ip == nil && host != "" {
-		return fmt.Errorf("Error: Invalid IP address: %#v", host)
+		return fmt.Errorf("invalid IP address: %#v", host)
 	}
 
 	if err := CheckPort(port); err != nil {
@@ -38,18 +38,17 @@ func CheckPort(port string) error {
 
 	i, err := strconv.Atoi(port)
 	if err != nil {
-		return errors.Wrapf(err, "Unable to convert %s to int", port)
+		return errors.Wrapf(err, "unable to convert %s to int", port)
 	}
 
 	if i < 0 || i > 65535 {
-		return fmt.Errorf("Invalid port %s", port)
+		return fmt.Errorf("invalid port %s", port)
 	}
 
 	return nil
 }
 
 // newHashID returns a HashID to perform en-/decoding on.
-// See https://hashids.org for more info.
 func newHashID() (*hashids.HashID, error) {
 	// Defaults
 	salt := "Best salt"
