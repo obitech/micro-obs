@@ -20,10 +20,10 @@ func init() {
 func (s *Server) createRoutes() {
 	var routes = util.Routes{
 		util.Route{
-			Name:        "root",
+			Name:        "pong",
 			Method:      "GET",
 			Pattern:     "/",
-			HandlerFunc: util.Healthz(),
+			HandlerFunc: s.pong(),
 		},
 		util.Route{
 			Name:        "healthz",
