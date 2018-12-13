@@ -6,7 +6,7 @@ import (
 	"github.com/obitech/micro-obs/util"
 )
 
-// Pong sends a simple JSON response.
+// pong sends a simple JSON response.
 func (s *Server) pong() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if res, err := util.NewResponse(200, "pong", 0, nil); err != nil {
