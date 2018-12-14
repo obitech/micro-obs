@@ -51,7 +51,7 @@ func NewServer(options ...ServerOptions) (*Server, error) {
 		router:   util.NewRouter(),
 	}
 
-	// Setting passed server options
+	// Applying custom settings
 	for _, fn := range options {
 		if err := fn(s); err != nil {
 			return nil, errors.Wrap(err, "Failed to set server options")
