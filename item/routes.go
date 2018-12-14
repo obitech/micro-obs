@@ -31,6 +31,24 @@ func (s *Server) createRoutes() {
 			Pattern:     "/healthz",
 			HandlerFunc: util.Healthz(),
 		},
+		util.Route{
+			Name:        "getAllItems",
+			Method:      "GET",
+			Pattern:     "/items",
+			HandlerFunc: s.getAllItems(),
+		},
+		util.Route{
+			Name:        "setItemsPOST",
+			Method:      "POST",
+			Pattern:     "/items",
+			HandlerFunc: s.setItem(false),
+		},
+		util.Route{
+			Name:        "setItemsPUT",
+			Method:      "PUT",
+			Pattern:     "/items",
+			HandlerFunc: s.setItem(true),
+		},
 	}
 
 	for _, route := range routes {

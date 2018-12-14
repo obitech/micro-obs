@@ -205,29 +205,10 @@ func TestGoRedis(t *testing.T) {
 
 func TestItemRedis(t *testing.T) {
 	// Setup miniredis
-	c, mr := helperPrepareMiniredis(t)
+	_, mr := helperPrepareMiniredis(t)
 	defer mr.Close()
 
 	var sampleKeys []string
-
-	// Setup sample Items
-	for _, tt := range sampleItems {
-		i, err := NewItem(tt.name, tt.desc, tt.qty)
-		if err != nil {
-			t.Errorf("unable to create new item: %s", err)
-		}
-
-		// Setting in redis
-		key, fv := i.MarshalRedis()
-		for f, v := range fv {
-			c.HSet(key, f, v)
-		}
-
-		// Verify
-		helperRedisHGETALL(c, key, fv, t)
-
-		sampleKeys = append(sampleKeys, key)
-	}
 
 	addr := strings.Join([]string{"redis://", mr.Addr()}, "")
 	s, err := NewServer(
@@ -243,17 +224,44 @@ func TestItemRedis(t *testing.T) {
 		}
 	})
 
+	t.Run("SetItems with sampleItems", func(t *testing.T) {
+		for _, tt := range sampleItems {
+			i, err := NewItem(tt.name, tt.desc, tt.qty)
+			if err != nil {
+				t.Errorf("unable to create new item: %s", err)
+			}
+
+			if err := s.SetItem(i); err != nil {
+				t.Error(err)
+			}
+			sampleKeys = append(sampleKeys, i.ID)
+		}
+	})
+
 	t.Run("ScanKeys function", func(t *testing.T) {
 		keys, err := s.ScanKeys()
 		if err != nil {
 			t.Errorf("unable to SCAN redis for keys: %s", err)
 		}
 
-		// if !cmp.Equal(keys, sampleKeys) {
-		// 	t.Errorf("%#v != %#v", keys, sampleKeys)
-		// }
 		if !reflect.DeepEqual(keys, sampleKeys) {
 			t.Errorf("%#v != %#v", keys, sampleKeys)
+		}
+	})
+
+	t.Run("GetItem function", func(t *testing.T) {
+		var c int
+		for _, k := range sampleKeys {
+			i, err := s.GetItem(k)
+			if err != nil {
+				t.Errorf("unable to retrieve item with key %s: %s", k, err)
+			}
+
+			v, _ := NewItem(sampleItems[c].name, sampleItems[c].desc, sampleItems[c].qty)
+			if !reflect.DeepEqual(i, v) {
+				t.Errorf("%#v != %#v", i, v)
+			}
+			c++
 		}
 	})
 }

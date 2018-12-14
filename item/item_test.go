@@ -52,6 +52,24 @@ func TestItem(t *testing.T) {
 		}
 	})
 
+	t.Run("SetID", func(t *testing.T) {
+		i := &Item{
+			Name: "testing",
+			Desc: "test",
+			Qty:  0,
+		}
+		if err := i.SetID(); err != nil {
+			t.Errorf("unable to set HashID: %s", err)
+		}
+		s, err := util.HashIDToString(i.ID)
+		if err != nil {
+			t.Errorf("unable to decode %#v to string: %#v", i.ID, err)
+		}
+		if s != i.Name {
+			t.Errorf("HashIDToString(%#v), expected: %#v, got: %#v", i.ID, i.Name, s)
+		}
+	})
+
 	t.Run("Redis marshalling", func(t *testing.T) {
 		prsKeys := []string{"name", "desc", "qty"}
 		for _, i := range items {

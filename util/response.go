@@ -29,16 +29,5 @@ func (r Response) SendJSON(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/JSON; charset=UTF-8")
 	w.WriteHeader(r.Status)
 	err := json.NewEncoder(w).Encode(r)
-	if err != nil {
-
-		status := http.StatusInternalServerError
-		w.WriteHeader(status)
-
-		r.Status = status
-		r.Message = "Internal Server Error while trying to encode JSON"
-		r.Data = nil
-
-		_ = json.NewEncoder(w).Encode(r)
-	}
 	return err
 }

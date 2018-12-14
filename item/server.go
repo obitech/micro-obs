@@ -208,6 +208,36 @@ func (s *Server) serveHTTP(w http.ResponseWriter, r *http.Request) {
 	s.router.ServeHTTP(w, r)
 }
 
+func (s *Server) internalError(w http.ResponseWriter) {
+	w.Header().Del("Content-Type")
+	w.WriteHeader(http.StatusInternalServerError)
+	if _, err := w.Write([]byte("Internal Server Error")); err != nil {
+		s.logger.Panicw("unable to send response",
+			"error", err,
+		)
+	}
+}
+
+// Respond sends a JSON-encoded response.
+func (s *Server) Respond(status int, m string, c int, data interface{}, w http.ResponseWriter) {
+	res, err := util.NewResponse(status, m, c, data)
+	if err != nil {
+		s.internalError(w)
+		s.logger.Panicw("unable to create JSON response",
+			"error", err,
+		)
+	}
+
+	err = res.SendJSON(w)
+	if err != nil {
+		s.internalError(w)
+		s.logger.Errorw("sending JSON response failed",
+			"error", err,
+			"response", res,
+		)
+	}
+}
+
 // Stop will stop the server
 func (s *Server) Stop() {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)

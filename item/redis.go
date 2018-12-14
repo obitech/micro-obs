@@ -1,5 +1,9 @@
 package item
 
+import (
+	"github.com/pkg/errors"
+)
+
 // ScanKeys retrieves all keys from a redis instance.
 // This uses the SCAN command so it's save to use on large database & in production.
 func (s *Server) ScanKeys() ([]string, error) {
@@ -10,10 +14,11 @@ func (s *Server) ScanKeys() ([]string, error) {
 	for {
 		var k []string
 		k, cursor, err = s.redis.Scan(cursor, "", 10).Result()
-		keys = append(keys, k...)
 		if err != nil {
 			return nil, err
 		}
+		keys = append(keys, k...)
+
 		if cursor == 0 {
 			break
 		}
@@ -22,12 +27,31 @@ func (s *Server) ScanKeys() ([]string, error) {
 }
 
 // GetItem retrieves an Item from Redis.
-// func (s *Server) GetItem(k string) (*Item, error) {
-// 	r, err := s.redis.HGetAll(k).Result()
-// 	if err != nil {
-// 		return nil, err
-// 	}
+func (s *Server) GetItem(k string) (*Item, error) {
+	r, err := s.redis.HGetAll(k).Result()
+	if err != nil {
+		return nil, err
+	}
 
-// 	var item *Item
-// 	return nil, nil
-// }
+	if len(r) == 0 {
+		return nil, nil
+	}
+
+	var i = &Item{}
+	err = UnmarshalRedis(k, r, i)
+
+	return i, err
+}
+
+// SetItem sets an Item as a hash in Redis.
+func (s *Server) SetItem(i *Item) error {
+	k, fv := i.MarshalRedis()
+	for f, v := range fv {
+		_, err := s.redis.HSet(k, f, v).Result()
+		if err != nil {
+			return errors.Errorf("unable to HSET %s %s %s", k, f, v)
+		}
+	}
+
+	return nil
+}

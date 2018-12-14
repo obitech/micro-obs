@@ -11,10 +11,10 @@ import (
 // Item defines a shop item with attributes. ID should be a HashID of the name.
 // // See https://hashids.org for more info.
 type Item struct {
-	Name string
-	ID   string
-	Desc string
-	Qty  int
+	Name string `json:"name"`
+	ID   string `json:"id"`
+	Desc string `json:"desc"`
+	Qty  int    `json:"qty"`
 }
 
 // NewItem creates a new item where the ID becomes the HashID of the lowercase name.
@@ -32,7 +32,17 @@ func NewItem(name, desc string, qty int) (*Item, error) {
 	}, nil
 }
 
-// marshalRedis takes an Item struct and marshalls it to hand over to go-redis.
+// SetID creates a HashID from an already set Name field.
+func (i *Item) SetID() error {
+	id, err := util.StringToHashID(strings.ToLower(i.Name))
+	if err != nil {
+		return err
+	}
+	i.ID = id
+	return nil
+}
+
+// MarshalRedis marshalls and Item to hand over to go-redis.
 // Item.ID will be the key (as string), where the other fields will be a map[string]string.
 func (i *Item) MarshalRedis() (string, map[string]string) {
 	return i.ID, map[string]string{
@@ -42,6 +52,7 @@ func (i *Item) MarshalRedis() (string, map[string]string) {
 	}
 }
 
+// UnmarshalRedis parses a passed string and map into an Item.
 func UnmarshalRedis(key string, data map[string]string, i *Item) error {
 	// Check for key existance
 	ks := []string{"name", "desc", "qty"}

@@ -1,8 +1,11 @@
 package item
 
 import (
+	"bytes"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 )
 
@@ -56,7 +59,7 @@ var (
 		"golang.org:http",
 	}...)
 
-	validEndpoints = []struct {
+	basicEndpoints = []struct {
 		method     string
 		path       string
 		wantStatus int
@@ -65,6 +68,9 @@ var (
 		{"GET", "/healthz", 200},
 		{"GET", "/asdasd", 404},
 		{"GET", "/metrics", 200},
+		{"GET", "/items", 200},
+		{"POST", "/items", 422},
+		{"PUT", "/items", 422},
 	}
 )
 
@@ -129,19 +135,35 @@ func TestNewServer(t *testing.T) {
 }
 
 func TestEndpoints(t *testing.T) {
-	t.Run("Testing endpoints", func(t *testing.T) {
-		s, _ := NewServer()
+	_, mr := helperPrepareMiniredis(t)
+	defer mr.Close()
 
-		for _, tt := range validEndpoints {
-			req, err := http.NewRequest(tt.method, tt.path, nil)
+	s, err := NewServer(
+		SetRedisAddress(strings.Join([]string{"redis://", mr.Addr()}, "")),
+	)
+	if err != nil {
+		t.Errorf("unable to create server: %s", err)
+	}
+
+	t.Run("Checking for 200", func(t *testing.T) {
+		for _, tt := range basicEndpoints {
+			body := bytes.NewBuffer([]byte{})
+			req, err := http.NewRequest(tt.method, tt.path, body)
 			if err != nil {
 				t.Errorf("Error creating request %#v %#v : %#v", tt.method, tt.path, err)
 			}
 
 			w := httptest.NewRecorder()
 			s.serveHTTP(w, req)
+
 			if w.Code != tt.wantStatus {
-				t.Errorf("Wrong status code on request %#v %#v. Got: %d, want: %d", tt.method, tt.path, w.Code, tt.wantStatus)
+				t.Logf("Wrong status code on request %#v %#v. Got: %d, want: %d", tt.method, tt.path, w.Code, tt.wantStatus)
+
+				res := w.Result()
+				b, _ := ioutil.ReadAll(res.Body)
+				res.Body.Close()
+				t.Logf("Revceived: %s", b)
+				t.Fail()
 			}
 		}
 	})
