@@ -59,13 +59,16 @@ func (s *Server) setItem(update bool) http.HandlerFunc {
 		var (
 			defaultErrMsg string
 			item          = &Item{}
+			status        int
 		)
 
 		switch update {
 		case true:
 			defaultErrMsg = "unable to update item"
+			status = http.StatusOK
 		case false:
 			defaultErrMsg = "unable to create item"
+			status = http.StatusCreated
 		}
 
 		// Accept payload
@@ -113,7 +116,7 @@ func (s *Server) setItem(update bool) http.HandlerFunc {
 		}
 		if i != nil {
 			if !update {
-				s.Respond(http.StatusBadRequest, fmt.Sprintf("item with name %s already exists", item.Name), 0, nil, w)
+				s.Respond(http.StatusNoContent, fmt.Sprintf("item with name %s already exists", item.Name), 0, nil, w)
 				return
 			}
 		}
@@ -129,6 +132,6 @@ func (s *Server) setItem(update bool) http.HandlerFunc {
 			return
 		}
 
-		s.Respond(http.StatusCreated, fmt.Sprintf("item %s created", item.Name), 1, []*Item{item}, w)
+		s.Respond(status, fmt.Sprintf("item %s created", item.Name), 1, []*Item{item}, w)
 	}
 }

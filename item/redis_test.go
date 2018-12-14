@@ -40,6 +40,7 @@ func helperPrepareMiniredis(t *testing.T) (*redis.Client, *miniredis.Miniredis) 
 	c := redis.NewClient(&redis.Options{
 		Addr: s.Addr(),
 	})
+
 	return c, s
 }
 

@@ -2,9 +2,11 @@ package item
 
 import (
 	"bytes"
+	"encoding/json"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"strings"
 	"testing"
 )
@@ -64,15 +66,40 @@ var (
 		path       string
 		wantStatus int
 	}{
-		{"GET", "/", 200},
-		{"GET", "/healthz", 200},
-		{"GET", "/asdasd", 404},
-		{"GET", "/metrics", 200},
-		{"GET", "/items", 200},
-		{"POST", "/items", 422},
-		{"PUT", "/items", 422},
+		{"GET", "/", http.StatusOK},
+		{"GET", "/healthz", http.StatusOK},
+		{"GET", "/asdasd", http.StatusNotFound},
+		{"GET", "/metrics", http.StatusOK},
+		{"GET", "/items", http.StatusOK},
+		{"POST", "/items", http.StatusUnprocessableEntity},
+		{"PUT", "/items", http.StatusUnprocessableEntity},
 	}
 )
+
+func helperSendJSONItem(item *Item, s *Server, method, path string, want int, t *testing.T) {
+	js, err := json.Marshal(item)
+	if err != nil {
+		t.Errorf("Unable to marshal %#v: %s", item, err)
+	}
+	req, err := http.NewRequest(method, path, bytes.NewBuffer(js))
+	if err != nil {
+		t.Errorf("unable to create buffer from %s: %s", js, err)
+	}
+	req.Header.Set("Content-Tye", "application/json")
+
+	w := httptest.NewRecorder()
+	s.serveHTTP(w, req)
+
+	if w.Code != want {
+		t.Logf("wrong status code on request %#v %#v. Got: %d, want: %d", method, path, w.Code, want)
+
+		res := w.Result()
+		b, _ := ioutil.ReadAll(res.Body)
+		res.Body.Close()
+		t.Logf("revceived: %s", b)
+		t.Fail()
+	}
+}
 
 func TestNewServer(t *testing.T) {
 	t.Run("Creating new default server", func(t *testing.T) {
@@ -101,7 +128,7 @@ func TestNewServer(t *testing.T) {
 		t.Run("Checking invalid addresses", func(t *testing.T) {
 			for _, v := range invalidRedisAddr {
 				if _, err := NewServer(SetRedisAddress(v)); err == nil {
-					t.Errorf("Expected error while setting redis address to %#v, got %#v", v, err)
+					t.Errorf("expected error while setting redis address to %#v, got %#v", v, err)
 				}
 			}
 		})
@@ -127,7 +154,7 @@ func TestNewServer(t *testing.T) {
 					SetServerAddress(tt),
 					SetServerEndpoint(tt),
 				); err == nil {
-					t.Errorf("Expected error when creating item server with listening address %#v, got %#v", tt, err)
+					t.Errorf("expected error when creating item server with listening address %#v, got %#v", tt, err)
 				}
 			}
 		})
@@ -135,36 +162,141 @@ func TestNewServer(t *testing.T) {
 }
 
 func TestEndpoints(t *testing.T) {
-	_, mr := helperPrepareMiniredis(t)
-	defer mr.Close()
+	t.Run("Basic endpoints", func(t *testing.T) {
+		_, mr := helperPrepareMiniredis(t)
+		defer mr.Close()
 
-	s, err := NewServer(
-		SetRedisAddress(strings.Join([]string{"redis://", mr.Addr()}, "")),
-	)
-	if err != nil {
-		t.Errorf("unable to create server: %s", err)
-	}
+		s, err := NewServer(
+			SetRedisAddress(strings.Join([]string{"redis://", mr.Addr()}, "")),
+		)
+		if err != nil {
+			t.Errorf("unable to create server: %s", err)
+		}
 
-	t.Run("Checking for 200", func(t *testing.T) {
 		for _, tt := range basicEndpoints {
 			body := bytes.NewBuffer([]byte{})
 			req, err := http.NewRequest(tt.method, tt.path, body)
 			if err != nil {
-				t.Errorf("Error creating request %#v %#v : %#v", tt.method, tt.path, err)
+				t.Errorf("error creating request %#v %#v : %#v", tt.method, tt.path, err)
 			}
 
 			w := httptest.NewRecorder()
 			s.serveHTTP(w, req)
 
 			if w.Code != tt.wantStatus {
-				t.Logf("Wrong status code on request %#v %#v. Got: %d, want: %d", tt.method, tt.path, w.Code, tt.wantStatus)
+				t.Logf("wrong status code on request %#v %#v. Got: %d, want: %d", tt.method, tt.path, w.Code, tt.wantStatus)
 
 				res := w.Result()
 				b, _ := ioutil.ReadAll(res.Body)
 				res.Body.Close()
-				t.Logf("Revceived: %s", b)
+				t.Logf("revceived: %s", b)
 				t.Fail()
 			}
 		}
+	})
+
+	t.Run("/items", func(t *testing.T) {
+		_, mr := helperPrepareMiniredis(t)
+		defer mr.Close()
+
+		s, err := NewServer(
+			SetRedisAddress(strings.Join([]string{"redis://", mr.Addr()}, "")),
+		)
+		if err != nil {
+			t.Errorf("unable to create server: %s", err)
+		}
+
+		path := "/items"
+		t.Run("POST new item", func(t *testing.T) {
+			t.Run("Create item in redis", func(t *testing.T) {
+				method := "POST"
+				want := http.StatusCreated
+
+				i := sampleItems[0]
+				item, _ := NewItem(i.name, i.desc, i.qty)
+				helperSendJSONItem(item, s, method, path, want, t)
+			})
+			t.Run("Verify item existence", func(t *testing.T) {
+				i := sampleItems[0]
+				item, _ := NewItem(i.name, i.desc, i.qty)
+
+				check, err := s.GetItem(item.ID)
+				if err != nil {
+					t.Errorf("unable to get item with key %s: %s", i.name, err)
+				}
+				if !reflect.DeepEqual(item, check) {
+					t.Errorf("%#v != %#v", item, check)
+				}
+			})
+		})
+
+		t.Run("POST existing item", func(t *testing.T) {
+			t.Run("Create item in redis", func(t *testing.T) {
+				method := "POST"
+				want := http.StatusNoContent
+
+				i := sampleItems[0]
+				item, _ := NewItem(i.name, i.desc, i.qty)
+				helperSendJSONItem(item, s, method, path, want, t)
+			})
+			t.Run("Verify item existence", func(t *testing.T) {
+				i := sampleItems[0]
+				item, _ := NewItem(i.name, i.desc, i.qty)
+
+				check, err := s.GetItem(item.ID)
+				if err != nil {
+					t.Errorf("unable to get item with key %s: %s", i.name, err)
+				}
+				if !reflect.DeepEqual(item, check) {
+					t.Errorf("%#v != %#v", item, check)
+				}
+			})
+		})
+
+		t.Run("PUT new item", func(t *testing.T) {
+			t.Run("Create item in redis", func(t *testing.T) {
+				method := "PUT"
+				want := http.StatusOK
+
+				i := sampleItems[1]
+				item, _ := NewItem(i.name, i.desc, i.qty)
+				helperSendJSONItem(item, s, method, path, want, t)
+			})
+			t.Run("Verify item existence", func(t *testing.T) {
+				i := sampleItems[1]
+				item, _ := NewItem(i.name, i.desc, i.qty)
+
+				check, err := s.GetItem(item.ID)
+				if err != nil {
+					t.Errorf("unable to get item with key %s: %s", i.name, err)
+				}
+				if !reflect.DeepEqual(item, check) {
+					t.Errorf("%#v != %#v", item, check)
+				}
+			})
+		})
+
+		t.Run("PUT existing item", func(t *testing.T) {
+			t.Run("Create item in redis", func(t *testing.T) {
+				method := "PUT"
+				want := http.StatusOK
+
+				i := sampleItems[1]
+				item, _ := NewItem(i.name, i.desc, i.qty)
+				helperSendJSONItem(item, s, method, path, want, t)
+			})
+			t.Run("Verify item existence", func(t *testing.T) {
+				i := sampleItems[1]
+				item, _ := NewItem(i.name, i.desc, i.qty)
+
+				check, err := s.GetItem(item.ID)
+				if err != nil {
+					t.Errorf("unable to get item with key %s: %s", i.name, err)
+				}
+				if !reflect.DeepEqual(item, check) {
+					t.Errorf("%#v != %#v", item, check)
+				}
+			})
+		})
 	})
 }
