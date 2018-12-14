@@ -1,11 +1,17 @@
 package item
 
 import (
+	"reflect"
 	"strconv"
 	"testing"
 
 	"github.com/obitech/micro-obs/util"
 )
+
+type redisMarshal struct {
+	key string
+	fv  map[string]string
+}
 
 var (
 	sampleItems = []struct {
@@ -22,6 +28,7 @@ var (
 
 func TestItem(t *testing.T) {
 	var items []*Item
+	var marshalledItems []redisMarshal
 
 	t.Run("Create new item", func(t *testing.T) {
 		for _, tt := range sampleItems {
@@ -48,7 +55,7 @@ func TestItem(t *testing.T) {
 	t.Run("Redis marshalling", func(t *testing.T) {
 		prsKeys := []string{"name", "desc", "qty"}
 		for _, i := range items {
-			key, fv := i.marshalRedis()
+			key, fv := i.MarshalRedis()
 			if key != i.ID {
 				t.Errorf("marshaling unsuccesful, expected key = %#v, got key = %#v", i.ID, key)
 			}
@@ -66,6 +73,28 @@ func TestItem(t *testing.T) {
 			if fv["qty"] != strconv.Itoa(i.Qty) {
 				t.Errorf("marshaling unsuccesful, expected qty = %#v, got qty = %#v", i.Qty, fv["qty"])
 			}
+			rm := redisMarshal{
+				key: key,
+				fv:  fv,
+			}
+			marshalledItems = append(marshalledItems, rm)
+		}
+	})
+
+	t.Run("Redis unmarshalling", func(t *testing.T) {
+		var c int
+		var i = &Item{}
+
+		for _, rm := range marshalledItems {
+			err := UnmarshalRedis(rm.key, rm.fv, i)
+			if err != nil {
+				t.Errorf("unable to unmarshal %#v: %s", rm, err)
+			}
+
+			if !reflect.DeepEqual(i, items[c]) {
+				t.Errorf("%#v != %#v", i, items[c])
+			}
+			c++
 		}
 	})
 }

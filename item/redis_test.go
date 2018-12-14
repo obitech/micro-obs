@@ -218,7 +218,7 @@ func TestItemRedis(t *testing.T) {
 		}
 
 		// Setting in redis
-		key, fv := i.marshalRedis()
+		key, fv := i.MarshalRedis()
 		for f, v := range fv {
 			c.HSet(key, f, v)
 		}
@@ -243,8 +243,8 @@ func TestItemRedis(t *testing.T) {
 		}
 	})
 
-	t.Run("GetAllKeys function", func(t *testing.T) {
-		keys, err := s.GetAllKeys()
+	t.Run("ScanKeys function", func(t *testing.T) {
+		keys, err := s.ScanKeys()
 		if err != nil {
 			t.Errorf("unable to SCAN redis for keys: %s", err)
 		}

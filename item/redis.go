@@ -1,10 +1,8 @@
 package item
 
-import "fmt"
-
-// GetAllKeys retrieves all keys from a redis instance.
+// ScanKeys retrieves all keys from a redis instance.
 // This uses the SCAN command so it's save to use on large database & in production.
-func (s *Server) GetAllKeys() ([]string, error) {
+func (s *Server) ScanKeys() ([]string, error) {
 	var cursor uint64
 	var keys []string
 	var err error
@@ -12,7 +10,6 @@ func (s *Server) GetAllKeys() ([]string, error) {
 	for {
 		var k []string
 		k, cursor, err = s.redis.Scan(cursor, "", 10).Result()
-		fmt.Println(k)
 		keys = append(keys, k...)
 		if err != nil {
 			return nil, err
@@ -23,3 +20,14 @@ func (s *Server) GetAllKeys() ([]string, error) {
 	}
 	return keys, err
 }
+
+// GetItem retrieves an Item from Redis.
+// func (s *Server) GetItem(k string) (*Item, error) {
+// 	r, err := s.redis.HGetAll(k).Result()
+// 	if err != nil {
+// 		return nil, err
+// 	}
+
+// 	var item *Item
+// 	return nil, nil
+// }

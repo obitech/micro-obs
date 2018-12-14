@@ -17,3 +17,10 @@ func (s *Server) pong() http.HandlerFunc {
 		}
 	}
 }
+
+// getAllItems retrieves all items from Redis.
+func (s *Server) getAllKeys() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+
+	}
+}
