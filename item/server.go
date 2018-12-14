@@ -162,7 +162,7 @@ func (s *Server) Run() error {
 	defer s.redis.Close()
 
 	// Checking for redis connection
-	s.logger.Info("Testing redis connection")
+	s.logger.Debug("Testing redis connection")
 	_, err := s.redis.Ping().Result()
 	if err != nil {
 		return errors.Wrap(err, "Unable to connect to redis server")

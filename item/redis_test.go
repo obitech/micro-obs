@@ -36,12 +36,12 @@ var (
 )
 
 func helperPrepareMiniredis(t *testing.T) (*redis.Client, *miniredis.Miniredis) {
-	s, _ := miniredis.Run()
+	mr, _ := miniredis.Run()
 	c := redis.NewClient(&redis.Options{
-		Addr: s.Addr(),
+		Addr: mr.Addr(),
 	})
 
-	return c, s
+	return c, mr
 }
 
 func helperRedisGET(c *redis.Client, k, want string, t *testing.T) {
