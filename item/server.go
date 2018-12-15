@@ -15,7 +15,6 @@ import (
 	"github.com/go-redis/redis"
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
-	"go.uber.org/zap"
 )
 
 // Server is a wrapper for a HTTP server, with dependencies attached.
@@ -26,7 +25,7 @@ type Server struct {
 	redisOps uint64
 	server   *http.Server
 	router   *mux.Router
-	logger   *zap.SugaredLogger
+	logger   *util.Logger
 }
 
 // ServerOptions sets options when creating a new server.
@@ -35,9 +34,9 @@ type ServerOptions func(*Server) error
 // NewServer creates a new Server according to options.
 func NewServer(options ...ServerOptions) (*Server, error) {
 	// Create default logger
-	logger, err := util.NewSugaredLogger("info")
+	logger, err := util.NewLogger("info")
 	if err != nil {
-		return nil, errors.Wrap(err, "Unable to create SugaredLogger")
+		return nil, errors.Wrap(err, "Unable to create Logger")
 	}
 
 	// Sane defaults
@@ -126,7 +125,7 @@ func SetServerEndpoint(address string) ServerOptions {
 // SetLogLevel sets the log level to either debug, warn, error or info. Info is default.
 func SetLogLevel(level string) ServerOptions {
 	return func(s *Server) error {
-		l, err := util.NewSugaredLogger(level)
+		l, err := util.NewLogger(level)
 		if err != nil {
 			return err
 		}

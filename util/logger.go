@@ -15,25 +15,97 @@ type Logger struct {
 
 // Info uses fmt.Sprint to log a templated message.
 func (l *Logger) Info(args ...interface{}) {
-	l.Info(args...)
+	l.logger.Info(args...)
 }
 
 // Infof uses fmt.Sprintf to log a templated message.
 func (l *Logger) Infof(msg string, args ...interface{}) {
-	l.Infof(msg, args...)
+	l.logger.Infof(msg, args...)
 }
 
 // Infow logs a message with some additional context. The variadic key-value pairs are treated as they are in With.
 func (l *Logger) Infow(msg string, kv ...interface{}) {
-	l.Infow(msg, kv...)
+	l.logger.Infow(msg, kv...)
 }
 
+// Error uses fmt.Sprint to construct and log a message.
 func (l *Logger) Error(msg string) {
-	l.Error(msg)
+	l.logger.Error(msg)
 }
 
-// newLogger creates a new logger
-func newLogger(level string) (*zap.Logger, error) {
+// Errorw logs a message with some additional context. The variadic key-value
+// pairs are treated as they are in With.
+func (l *Logger) Errorw(msg string, kv ...interface{}) {
+	l.logger.Errorw(msg, kv...)
+}
+
+// Warn uses fmt.Sprint to log a templated message.
+func (l *Logger) Warn(args ...interface{}) {
+	l.logger.Warn(args...)
+}
+
+// Warnf uses fmt.Sprintf to log a templated message.
+func (l *Logger) Warnf(msg string, args ...interface{}) {
+	l.logger.Warnf(msg, args...)
+}
+
+// Warnw logs a message with some additional context. The variadic key-value pairs are treated as they are in With.
+func (l *Logger) Warnw(msg string, kv ...interface{}) {
+	l.logger.Warnw(msg, kv...)
+}
+
+// Debug uses fmt.Sprint to log a templated message.
+func (l *Logger) Debug(args ...interface{}) {
+	l.logger.Debug(args...)
+}
+
+// Debugf uses fmt.Sprintf to log a templated message.
+func (l *Logger) Debugf(msg string, args ...interface{}) {
+	l.logger.Debugf(msg, args...)
+}
+
+// Debugw logs a message with some additional context. The variadic key-value pairs are treated as they are in With.
+func (l *Logger) Debugw(msg string, kv ...interface{}) {
+	l.logger.Debugw(msg, kv...)
+}
+
+// Panic uses fmt.Sprint to log a templated message, then panics.
+func (l *Logger) Panic(args ...interface{}) {
+	l.logger.Panic(args...)
+}
+
+// Panicf uses fmt.Sprintf to log a templated message, then panics.
+func (l *Logger) Panicf(msg string, args ...interface{}) {
+	l.logger.Panicf(msg, args...)
+}
+
+// Panicw logs a message with some additional context, then panics The variadic key-value pairs are treated as they are in With.
+func (l *Logger) Panicw(msg string, kv ...interface{}) {
+	l.logger.Panicw(msg, kv...)
+}
+
+// Fatal uses fmt.Sprint to log a templated message, then calls os.Exit.
+func (l *Logger) Fatal(args ...interface{}) {
+	l.logger.Fatal(args...)
+}
+
+// Fatalf uses fmt.Sprintf to log a templated message, then calls os.Exit.
+func (l *Logger) Fatalf(msg string, args ...interface{}) {
+	l.logger.Fatalf(msg, args...)
+}
+
+// Fatalw logs a message with some additional context, then calls os.Exit. The variadic key-value pairs are treated as they are in With.
+func (l *Logger) Fatalw(msg string, kv ...interface{}) {
+	l.logger.Fatalw(msg, kv...)
+}
+
+// Sync flushes any buffered log entries.
+func (l *Logger) Sync() {
+	l.logger.Sync()
+}
+
+// NewLogger creates a new Logger.
+func NewLogger(level string) (*Logger, error) {
 	atom := zap.NewAtomicLevel()
 
 	switch level {
@@ -66,20 +138,12 @@ func newLogger(level string) (*zap.Logger, error) {
 	l.Debug("Logger created",
 		zap.String("level", level),
 	)
-	return l, nil
-}
 
-// NewSugaredLogger creates a new sugared logger
-func NewSugaredLogger(level string) (*zap.SugaredLogger, error) {
-	l, err := newLogger(level)
-	if err != nil {
-		return nil, errors.Wrap(err, "Unable to initialize zap SugaredLogger")
-	}
-	return l.Sugar(), nil
+	return &Logger{logger: l.Sugar()}, nil
 }
 
 // LoggerWrapper is a decorator for a HTTP Request, adding structured logging functionality
-func LoggerWrapper(inner http.Handler, logger *zap.SugaredLogger) http.HandlerFunc {
+func LoggerWrapper(inner http.Handler, logger *Logger) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 		logger.Debugw("request received",
