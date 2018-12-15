@@ -8,6 +8,30 @@ import (
 	"go.uber.org/zap"
 )
 
+// Logger is an adapter type for zap's SugaredLogger
+type Logger struct {
+	logger *zap.SugaredLogger
+}
+
+// Info uses fmt.Sprint to log a templated message.
+func (l *Logger) Info(args ...interface{}) {
+	l.Info(args...)
+}
+
+// Infof uses fmt.Sprintf to log a templated message.
+func (l *Logger) Infof(msg string, args ...interface{}) {
+	l.Infof(msg, args...)
+}
+
+// Infow logs a message with some additional context. The variadic key-value pairs are treated as they are in With.
+func (l *Logger) Infow(msg string, kv ...interface{}) {
+	l.Infow(msg, kv...)
+}
+
+func (l *Logger) Error(msg string) {
+	l.Error(msg)
+}
+
 // newLogger creates a new logger
 func newLogger(level string) (*zap.Logger, error) {
 	atom := zap.NewAtomicLevel()

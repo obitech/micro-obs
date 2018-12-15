@@ -1,13 +1,22 @@
 version: "3.3"
 services:
+  jaeger:
+    container_name: micro_obs_jaeger
+    image: jaegertracing/all-in-one:1.7
+    ports:
+      - "6831:6831/udp"
+      - "6832:6832/udp"
+      - "16686:16686"
+    command: --log-level=debug
+    restart: always
   redis:
-    container_name: redis
+    container_name: micro_obs_redis
     image: redis:5
     ports:
       - "6379:6379"
     restart: always
   item:
-    container_name: item
+    container_name: micro_obs_item
     image: obitech/micro-obs:master
     command: item -r redis://redis:6379/0
     ports:
