@@ -219,11 +219,6 @@ func (s *Server) internalError(w http.ResponseWriter) {
 
 // Respond sends a JSON-encoded response.
 func (s *Server) Respond(status int, m string, c int, data interface{}, w http.ResponseWriter) {
-	if status == http.StatusInternalServerError {
-		s.internalError(w)
-		return
-	}
-
 	res, err := util.NewResponse(status, m, c, data)
 	if err != nil {
 		s.internalError(w)
