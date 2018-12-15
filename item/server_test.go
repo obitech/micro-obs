@@ -74,6 +74,8 @@ var (
 		{"GET", "/items", http.StatusOK},
 		{"POST", "/items", http.StatusUnprocessableEntity},
 		{"PUT", "/items", http.StatusUnprocessableEntity},
+		{"DELETE", "/", http.StatusMethodNotAllowed},
+		{"DELETE", "/items", http.StatusMethodNotAllowed},
 	}
 )
 
@@ -201,109 +203,236 @@ func TestEndpoints(t *testing.T) {
 	})
 
 	t.Run("Items Endpoint", func(t *testing.T) {
-		_, mr := helperPrepareMiniredis(t)
-		defer mr.Close()
-
-		s, err := NewServer(
-			SetRedisAddress(strings.Join([]string{"redis://", mr.Addr()}, "")),
-		)
-		if err != nil {
-			t.Errorf("unable to create server: %s", err)
-		}
-
 		var (
 			path   = "/items"
 			method = "POST"
 			want   = http.StatusCreated
 		)
-		t.Run("POST new item", func(t *testing.T) {
-			i := sampleItems[0]
-			item, _ := NewItem(i.name, i.desc, i.qty)
-			t.Run("Create item in redis", func(t *testing.T) {
-				helperSendJSONItem(item, s, method, path, want, t)
-			})
-			t.Run("Verify item existence", func(t *testing.T) {
-				check, err := s.GetItem(item.ID)
-				if err != nil {
-					t.Errorf("unable to get item with key %s: %s", i.name, err)
-				}
-				if !reflect.DeepEqual(item, check) {
-					t.Errorf("%#v != %#v", item, check)
-				}
-			})
-		})
 
-		t.Run("POST existing item", func(t *testing.T) {
-			i := sampleItems[0]
-			item, _ := NewItem(i.name, i.desc, i.qty)
-			t.Run("Create item in redis", func(t *testing.T) {
-				want = http.StatusNoContent
-				helperSendJSONItem(item, s, method, path, want, t)
-			})
-			t.Run("Verify item existence", func(t *testing.T) {
-				check, err := s.GetItem(item.ID)
-				if err != nil {
-					t.Errorf("unable to get item with key %s: %s", i.name, err)
-				}
-				if !reflect.DeepEqual(item, check) {
-					t.Errorf("%#v != %#v", item, check)
-				}
-			})
-		})
+		t.Run("Individual items", func(t *testing.T) {
+			_, mr := helperPrepareMiniredis(t)
+			defer mr.Close()
 
-		t.Run("PUT new item", func(t *testing.T) {
-			i := sampleItems[1]
-			item, _ := NewItem(i.name, i.desc, i.qty)
-			t.Run("Create item in redis", func(t *testing.T) {
-				method = "PUT"
-				want = http.StatusOK
-				helperSendJSONItem(item, s, method, path, want, t)
-			})
-			t.Run("Verify item existence", func(t *testing.T) {
-				check, err := s.GetItem(item.ID)
-				if err != nil {
-					t.Errorf("unable to get item with key %s: %s", i.name, err)
-				}
-				if !reflect.DeepEqual(item, check) {
-					t.Errorf("%#v != %#v", item, check)
-				}
-			})
-		})
-
-		t.Run("PUT existing item", func(t *testing.T) {
-			i := sampleItems[1]
-			item, _ := NewItem(i.name, i.desc, i.qty)
-			t.Run("Create item in redis", func(t *testing.T) {
-				method = "PUT"
-				want = http.StatusOK
-				helperSendJSONItem(item, s, method, path, want, t)
-			})
-			t.Run("Verify item existence", func(t *testing.T) {
-				check, err := s.GetItem(item.ID)
-				if err != nil {
-					t.Errorf("unable to get item with key %s: %s", i.name, err)
-				}
-				if !reflect.DeepEqual(item, check) {
-					t.Errorf("%#v != %#v", item, check)
-				}
-			})
-		})
-
-		t.Run("GET all items", func(t *testing.T) {
-			method = "GET"
-			want = http.StatusOK
-			helperSendSimpleRequest(s, method, path, want, t)
-		})
-
-		t.Run("DELETE single items", func(t *testing.T) {
-			method = "DELETE"
-			want = http.StatusOK
-
-			for _, v := range sampleItems {
-				item, _ := NewItem(v.name, v.desc, v.qty)
-				path = fmt.Sprintf("/items/%s", item.ID)
-				helperSendSimpleRequest(s, method, path, want, t)
+			s, err := NewServer(
+				SetRedisAddress(strings.Join([]string{"redis://", mr.Addr()}, "")),
+			)
+			if err != nil {
+				t.Errorf("unable to create server: %s", err)
 			}
+
+			t.Run("POST new item", func(t *testing.T) {
+				i := sampleItems[0]
+				item, _ := NewItem(i.name, i.desc, i.qty)
+				t.Run("Create item in redis", func(t *testing.T) {
+					helperSendJSONItem(item, s, method, path, want, t)
+				})
+				t.Run("Verify item existence", func(t *testing.T) {
+					check, err := s.GetItem(item.ID)
+					if err != nil {
+						t.Errorf("unable to get item with key %s: %s", i.name, err)
+					}
+					if !reflect.DeepEqual(item, check) {
+						t.Errorf("%#v != %#v", item, check)
+					}
+				})
+			})
+
+			t.Run("POST existing item", func(t *testing.T) {
+				i := sampleItems[0]
+				item, _ := NewItem(i.name, i.desc, i.qty)
+				t.Run("Create item in redis", func(t *testing.T) {
+					want = http.StatusNoContent
+					helperSendJSONItem(item, s, method, path, want, t)
+				})
+				t.Run("Verify item existence", func(t *testing.T) {
+					check, err := s.GetItem(item.ID)
+					if err != nil {
+						t.Errorf("unable to get item with key %s: %s", i.name, err)
+					}
+					if !reflect.DeepEqual(item, check) {
+						t.Errorf("%#v != %#v", item, check)
+					}
+				})
+			})
+
+			t.Run("PUT new item", func(t *testing.T) {
+				i := sampleItems[1]
+				item, _ := NewItem(i.name, i.desc, i.qty)
+				t.Run("Create item in redis", func(t *testing.T) {
+					method = "PUT"
+					want = http.StatusOK
+					helperSendJSONItem(item, s, method, path, want, t)
+				})
+				t.Run("Verify item existence", func(t *testing.T) {
+					check, err := s.GetItem(item.ID)
+					if err != nil {
+						t.Errorf("unable to get item with key %s: %s", i.name, err)
+					}
+					if !reflect.DeepEqual(item, check) {
+						t.Errorf("%#v != %#v", item, check)
+					}
+				})
+			})
+
+			t.Run("PUT existing item", func(t *testing.T) {
+				i := sampleItems[1]
+				item, _ := NewItem(i.name, i.desc, i.qty)
+				t.Run("Create item in redis", func(t *testing.T) {
+					method = "PUT"
+					want = http.StatusOK
+					helperSendJSONItem(item, s, method, path, want, t)
+				})
+				t.Run("Verify item existence", func(t *testing.T) {
+					check, err := s.GetItem(item.ID)
+					if err != nil {
+						t.Errorf("unable to get item with key %s: %s", i.name, err)
+					}
+					if !reflect.DeepEqual(item, check) {
+						t.Errorf("%#v != %#v", item, check)
+					}
+				})
+			})
+
+			t.Run("GET all items", func(t *testing.T) {
+				method = "GET"
+				want = http.StatusOK
+				helperSendSimpleRequest(s, method, path, want, t)
+			})
+
+			t.Run("DELETE single item -> all items", func(t *testing.T) {
+				method = "DELETE"
+				want = http.StatusOK
+
+				for _, v := range sampleItems {
+					item, _ := NewItem(v.name, v.desc, v.qty)
+					path = fmt.Sprintf("/items/%s", item.ID)
+					helperSendSimpleRequest(s, method, path, want, t)
+				}
+			})
+		})
+
+		t.Run("All items, POST", func(t *testing.T) {
+			_, mr := helperPrepareMiniredis(t)
+			defer mr.Close()
+
+			s, err := NewServer(
+				SetRedisAddress(strings.Join([]string{"redis://", mr.Addr()}, "")),
+			)
+			if err != nil {
+				t.Errorf("unable to create server: %s", err)
+			}
+
+			path = "/items"
+			method = "POST"
+			want = http.StatusCreated
+
+			t.Run("POST new item", func(t *testing.T) {
+				for _, v := range sampleItems {
+					item, _ := NewItem(v.name, v.desc, v.qty)
+
+					t.Run("Create item in redis", func(t *testing.T) {
+						helperSendJSONItem(item, s, method, path, want, t)
+					})
+
+					t.Run("Verify item existence", func(t *testing.T) {
+						check, err := s.GetItem(item.ID)
+						if err != nil {
+							t.Errorf("unable to get item with key %s: %s", item.ID, err)
+						}
+						if !reflect.DeepEqual(item, check) {
+							t.Errorf("%#v != %#v", item, check)
+						}
+					})
+				}
+			})
+
+			t.Run("GET all items", func(t *testing.T) {
+				method = "GET"
+				want = http.StatusOK
+				helperSendSimpleRequest(s, method, path, want, t)
+			})
+
+			t.Run("GET single item", func(t *testing.T) {
+				method = "GET"
+				want = http.StatusOK
+				for _, v := range sampleItems {
+					item, _ := NewItem(v.name, v.desc, v.qty)
+					path = fmt.Sprintf("/items/%s", item.ID)
+					helperSendJSONItem(item, s, method, path, want, t)
+				}
+			})
+
+			t.Run("DELTE single item", func(t *testing.T) {
+				method = "DELETE"
+				want = http.StatusOK
+				for _, v := range sampleItems {
+					item, _ := NewItem(v.name, v.desc, v.qty)
+					path = fmt.Sprintf("/items/%s", item.ID)
+					helperSendJSONItem(item, s, method, path, want, t)
+				}
+			})
+		})
+
+		t.Run("All items, PUT", func(t *testing.T) {
+			_, mr := helperPrepareMiniredis(t)
+			defer mr.Close()
+
+			s, err := NewServer(
+				SetRedisAddress(strings.Join([]string{"redis://", mr.Addr()}, "")),
+			)
+			if err != nil {
+				t.Errorf("unable to create server: %s", err)
+			}
+
+			path = "/items"
+			method = "PUT"
+			want = http.StatusOK
+
+			t.Run("POST new item", func(t *testing.T) {
+				for _, v := range sampleItems {
+					item, _ := NewItem(v.name, v.desc, v.qty)
+
+					t.Run("Create item in redis", func(t *testing.T) {
+						helperSendJSONItem(item, s, method, path, want, t)
+					})
+
+					t.Run("Verify item existence", func(t *testing.T) {
+						check, err := s.GetItem(item.ID)
+						if err != nil {
+							t.Errorf("unable to get item with key %s: %s", item.ID, err)
+						}
+						if !reflect.DeepEqual(item, check) {
+							t.Errorf("%#v != %#v", item, check)
+						}
+					})
+				}
+			})
+
+			t.Run("GET all items", func(t *testing.T) {
+				method = "GET"
+				want = http.StatusOK
+				helperSendSimpleRequest(s, method, path, want, t)
+			})
+
+			t.Run("GET single item", func(t *testing.T) {
+				method = "GET"
+				want = http.StatusOK
+				for _, v := range sampleItems {
+					item, _ := NewItem(v.name, v.desc, v.qty)
+					path = fmt.Sprintf("/items/%s", item.ID)
+					helperSendJSONItem(item, s, method, path, want, t)
+				}
+			})
+
+			t.Run("DELTE single item", func(t *testing.T) {
+				method = "DELETE"
+				want = http.StatusOK
+				for _, v := range sampleItems {
+					item, _ := NewItem(v.name, v.desc, v.qty)
+					path = fmt.Sprintf("/items/%s", item.ID)
+					helperSendJSONItem(item, s, method, path, want, t)
+				}
+			})
 		})
 	})
 }

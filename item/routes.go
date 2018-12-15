@@ -50,6 +50,12 @@ func (s *Server) createRoutes() {
 			HandlerFunc: s.setItem(true),
 		},
 		util.Route{
+			Name:        "getItem",
+			Method:      "GET",
+			Pattern:     "/items/{id:[a-zA-Z0-9]+}",
+			HandlerFunc: s.getItem(),
+		},
+		util.Route{
 			Name:        "delItem",
 			Method:      "DELETE",
 			Pattern:     "/items/{id:[a-zA-Z0-9]+}",

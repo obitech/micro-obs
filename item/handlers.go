@@ -138,6 +138,27 @@ func (s *Server) setItem(update bool) http.HandlerFunc {
 	}
 }
 
+// getItem retrieves a single Item by ID from Redis.
+func (s *Server) getItem() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		pr := mux.Vars(r)
+		key := pr["id"]
+
+		item, err := s.GetItem(key)
+		if err != nil {
+			s.logger.Errorw("unable to get key from redis",
+				"key", key,
+				"error", err,
+			)
+		}
+		if item == nil {
+			s.Respond(http.StatusOK, fmt.Sprintf("item with ID %s doesn't exist", key), 0, nil, w)
+			return
+		}
+		s.Respond(http.StatusOK, "item retrieved", 1, []*Item{item}, w)
+	}
+}
+
 // delItem deletes a single item by ID.
 func (s *Server) delItem() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
