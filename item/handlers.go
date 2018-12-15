@@ -99,7 +99,7 @@ func (s *Server) setItem(update bool) http.HandlerFunc {
 			s.Respond(http.StatusInternalServerError, defaultErrMsg, 0, nil, w)
 			return
 		}
-		s.logger.Debugw("item received",
+		s.logger.Debugw("item struct created",
 			"id", item.ID,
 			"name", item.Name,
 			"desc", item.Desc,
@@ -118,7 +118,7 @@ func (s *Server) setItem(update bool) http.HandlerFunc {
 		}
 		if i != nil {
 			if !update {
-				s.Respond(http.StatusNoContent, fmt.Sprintf("item with name %s already exists", item.Name), 0, nil, w)
+				s.Respond(http.StatusOK, fmt.Sprintf("item with name %s already exists", item.Name), 0, nil, w)
 				return
 			}
 		}

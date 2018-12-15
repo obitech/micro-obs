@@ -26,8 +26,8 @@ func newLogger(level string) (*zap.Logger, error) {
 
 	cfg := zap.Config{
 		Development:       false,
-		DisableCaller:     true,
-		DisableStacktrace: true,
+		DisableCaller:     false,
+		DisableStacktrace: false,
 		EncoderConfig:     zap.NewProductionEncoderConfig(),
 		Encoding:          "json",
 		ErrorOutputPaths:  []string{"stdout"},
@@ -58,8 +58,13 @@ func NewSugaredLogger(level string) (*zap.SugaredLogger, error) {
 func LoggerWrapper(inner http.Handler, logger *zap.SugaredLogger) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
+		logger.Debugw("request received",
+			"address", r.RemoteAddr,
+			"method", r.Method,
+			"path", r.RequestURI,
+		)
 		inner.ServeHTTP(w, r)
-		logger.Infow("Request completed",
+		logger.Infow("request completed",
 			"address", r.RemoteAddr,
 			"method", r.Method,
 			"path", r.RequestURI,

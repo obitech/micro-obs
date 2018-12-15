@@ -220,7 +220,16 @@ func TestEndpoints(t *testing.T) {
 				t.Errorf("unable to create server: %s", err)
 			}
 
+			t.Run("GET all items", func(t *testing.T) {
+				method = "GET"
+				want = http.StatusOK
+				helperSendSimpleRequest(s, method, path, want, t)
+			})
+
 			t.Run("POST new item", func(t *testing.T) {
+				method = "POST"
+				want = http.StatusCreated
+
 				i := sampleItems[0]
 				item, _ := NewItem(i.name, i.desc, i.qty)
 				t.Run("Create item in redis", func(t *testing.T) {
@@ -241,7 +250,7 @@ func TestEndpoints(t *testing.T) {
 				i := sampleItems[0]
 				item, _ := NewItem(i.name, i.desc, i.qty)
 				t.Run("Create item in redis", func(t *testing.T) {
-					want = http.StatusNoContent
+					want = http.StatusOK
 					helperSendJSONItem(item, s, method, path, want, t)
 				})
 				t.Run("Verify item existence", func(t *testing.T) {
@@ -311,7 +320,7 @@ func TestEndpoints(t *testing.T) {
 			})
 		})
 
-		t.Run("All items, POST", func(t *testing.T) {
+		t.Run("POST all items", func(t *testing.T) {
 			_, mr := helperPrepareMiniredis(t)
 			defer mr.Close()
 
@@ -323,10 +332,17 @@ func TestEndpoints(t *testing.T) {
 			}
 
 			path = "/items"
-			method = "POST"
-			want = http.StatusCreated
+
+			t.Run("GET all items", func(t *testing.T) {
+				method = "GET"
+				want = http.StatusOK
+				helperSendSimpleRequest(s, method, path, want, t)
+			})
 
 			t.Run("POST new item", func(t *testing.T) {
+				method = "POST"
+				want = http.StatusCreated
+
 				for _, v := range sampleItems {
 					item, _ := NewItem(v.name, v.desc, v.qty)
 
@@ -373,7 +389,7 @@ func TestEndpoints(t *testing.T) {
 			})
 		})
 
-		t.Run("All items, PUT", func(t *testing.T) {
+		t.Run("PUT all items", func(t *testing.T) {
 			_, mr := helperPrepareMiniredis(t)
 			defer mr.Close()
 
@@ -388,7 +404,7 @@ func TestEndpoints(t *testing.T) {
 			method = "PUT"
 			want = http.StatusOK
 
-			t.Run("POST new item", func(t *testing.T) {
+			t.Run("PUT new item", func(t *testing.T) {
 				for _, v := range sampleItems {
 					item, _ := NewItem(v.name, v.desc, v.qty)
 

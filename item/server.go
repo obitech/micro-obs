@@ -3,6 +3,7 @@ package item
 import (
 	"context"
 	"github.com/obitech/micro-obs/util"
+	"io"
 	"net"
 	"net/http"
 	"os"
@@ -209,7 +210,7 @@ func (s *Server) serveHTTP(w http.ResponseWriter, r *http.Request) {
 func (s *Server) internalError(w http.ResponseWriter) {
 	w.Header().Del("Content-Type")
 	w.WriteHeader(http.StatusInternalServerError)
-	if _, err := w.Write([]byte("Internal Server Error")); err != nil {
+	if _, err := io.WriteString(w, "Internal Server Error\n"); err != nil {
 		s.logger.Panicw("unable to send response",
 			"error", err,
 		)
@@ -218,6 +219,11 @@ func (s *Server) internalError(w http.ResponseWriter) {
 
 // Respond sends a JSON-encoded response.
 func (s *Server) Respond(status int, m string, c int, data interface{}, w http.ResponseWriter) {
+	if status == http.StatusInternalServerError {
+		s.internalError(w)
+		return
+	}
+
 	res, err := util.NewResponse(status, m, c, data)
 	if err != nil {
 		s.internalError(w)
@@ -229,7 +235,7 @@ func (s *Server) Respond(status int, m string, c int, data interface{}, w http.R
 	err = res.SendJSON(w)
 	if err != nil {
 		s.internalError(w)
-		s.logger.Errorw("sending JSON response failed",
+		s.logger.Panicw("sending JSON response failed",
 			"error", err,
 			"response", res,
 		)
