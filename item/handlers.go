@@ -6,6 +6,8 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+
+	"github.com/gorilla/mux"
 )
 
 // pong sends a simple JSON response.
@@ -133,5 +135,24 @@ func (s *Server) setItem(update bool) http.HandlerFunc {
 		}
 
 		s.Respond(status, fmt.Sprintf("item %s created", item.Name), 1, []*Item{item}, w)
+	}
+}
+
+// delItem deletes a single item by ID.
+func (s *Server) delItem() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		pr := mux.Vars(r)
+		key := pr["id"]
+
+		err := s.DelItem(key)
+		if err != nil {
+			s.logger.Errorw("unable to delete key from redis",
+				"key", key,
+				"error", err,
+			)
+			s.Respond(http.StatusInternalServerError, "an error occured while tring to delete item", 0, nil, w)
+			return
+		}
+		s.Respond(http.StatusOK, "item deleted", 0, nil, w)
 	}
 }

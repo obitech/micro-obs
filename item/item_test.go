@@ -23,6 +23,7 @@ var (
 		{"orange", "a juicy fruit", 100},
 		{"😍", "lovely smily", 999},
 		{"     ", "﷽", 249093419},
+		{" 123asd🙆   🙋 asdlloqwe", "test", 0},
 	}
 )
 
@@ -108,7 +109,6 @@ func TestItem(t *testing.T) {
 			if err != nil {
 				t.Errorf("unable to unmarshal %#v: %s", rm, err)
 			}
-
 			if !reflect.DeepEqual(i, items[c]) {
 				t.Errorf("%#v != %#v", i, items[c])
 			}

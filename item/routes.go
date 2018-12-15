@@ -49,6 +49,12 @@ func (s *Server) createRoutes() {
 			Pattern:     "/items",
 			HandlerFunc: s.setItem(true),
 		},
+		util.Route{
+			Name:        "delItem",
+			Method:      "DELETE",
+			Pattern:     "/items/{id:[a-zA-Z0-9]+}",
+			HandlerFunc: s.delItem(),
+		},
 	}
 
 	for _, route := range routes {

@@ -39,10 +39,8 @@ func NewServer(options ...ServerOptions) (*Server, error) {
 		return nil, errors.Wrap(err, "Unable to create SugaredLogger")
 	}
 
-	// Create default redis client
-	rc, _ := NewRedisClient("redis://127.0.0.1:6379/0")
-
 	// Sane defaults
+	rc, _ := NewRedisClient("redis://127.0.0.1:6379/0")
 	s := &Server{
 		address:  ":8080",
 		endpoint: "127.0.0.1:9090",

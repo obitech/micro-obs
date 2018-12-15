@@ -3,14 +3,13 @@ package item
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
 	"strings"
 	"testing"
-
-	"github.com/obitech/micro-obs/util"
 )
 
 var (
@@ -103,6 +102,27 @@ func helperSendJSONItem(item *Item, s *Server, method, path string, want int, t 
 	}
 }
 
+func helperSendSimpleRequest(s *Server, method, path string, want int, t *testing.T) {
+	body := bytes.NewBuffer([]byte{})
+	req, err := http.NewRequest(method, path, body)
+	if err != nil {
+		t.Errorf("unable to create request %#v %#v : %#v", method, path, err)
+	}
+
+	w := httptest.NewRecorder()
+	s.serveHTTP(w, req)
+
+	if w.Code != want {
+		t.Logf("wrong status code on request %#v %#v. Got: %d, want: %d", method, path, w.Code, want)
+
+		res := w.Result()
+		b, _ := ioutil.ReadAll(res.Body)
+		res.Body.Close()
+		t.Logf("revceived: %s", b)
+		t.Fail()
+	}
+}
+
 func TestNewServer(t *testing.T) {
 	t.Run("Creating new default server", func(t *testing.T) {
 		if _, err := NewServer(); err != nil {
@@ -176,28 +196,11 @@ func TestEndpoints(t *testing.T) {
 		}
 
 		for _, tt := range basicEndpoints {
-			body := bytes.NewBuffer([]byte{})
-			req, err := http.NewRequest(tt.method, tt.path, body)
-			if err != nil {
-				t.Errorf("error creating request %#v %#v : %#v", tt.method, tt.path, err)
-			}
-
-			w := httptest.NewRecorder()
-			s.serveHTTP(w, req)
-
-			if w.Code != tt.wantStatus {
-				t.Logf("wrong status code on request %#v %#v. Got: %d, want: %d", tt.method, tt.path, w.Code, tt.wantStatus)
-
-				res := w.Result()
-				b, _ := ioutil.ReadAll(res.Body)
-				res.Body.Close()
-				t.Logf("revceived: %s", b)
-				t.Fail()
-			}
+			helperSendSimpleRequest(s, tt.method, tt.path, tt.wantStatus, t)
 		}
 	})
 
-	t.Run("/items", func(t *testing.T) {
+	t.Run("Items Endpoint", func(t *testing.T) {
 		_, mr := helperPrepareMiniredis(t)
 		defer mr.Close()
 
@@ -289,28 +292,17 @@ func TestEndpoints(t *testing.T) {
 		t.Run("GET all items", func(t *testing.T) {
 			method = "GET"
 			want = http.StatusOK
-			body := bytes.NewBuffer([]byte{})
-			req, err := http.NewRequest(method, path, body)
-			if err != nil {
-				t.Errorf("error creating request %#v %#v : %#v", method, path, err)
-			}
+			helperSendSimpleRequest(s, method, path, want, t)
+		})
 
-			w := httptest.NewRecorder()
-			s.serveHTTP(w, req)
-			res := w.Result()
-			b, _ := ioutil.ReadAll(res.Body)
-			defer res.Body.Close()
+		t.Run("DELETE single items", func(t *testing.T) {
+			method = "DELETE"
+			want = http.StatusOK
 
-			if w.Code != want {
-				t.Logf("wrong status code on request %#v %#v. Got: %d, want: %d", method, path, w.Code, want)
-				t.Logf("revceived: %s", b)
-				t.Fail()
-			}
-
-			var jsonResp util.Response
-			err = json.Unmarshal(b, &jsonResp)
-			if err != nil {
-				t.Errorf("unable to unmarshal %#v: %s", string(b), err)
+			for _, v := range sampleItems {
+				item, _ := NewItem(v.name, v.desc, v.qty)
+				path = fmt.Sprintf("/items/%s", item.ID)
+				helperSendSimpleRequest(s, method, path, want, t)
 			}
 		})
 	})

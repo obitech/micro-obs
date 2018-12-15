@@ -79,4 +79,39 @@ func TestItemRedis(t *testing.T) {
 			c++
 		}
 	})
+
+	t.Run("DelItems function", func(t *testing.T) {
+		var items = make([]*Item, len(sampleItems))
+		for i, v := range sampleItems {
+			items[i], _ = NewItem(v.name, v.desc, v.qty)
+		}
+
+		err := s.DelItems(items)
+		if err != nil {
+			t.Errorf("unable to delete itemes: %s", err)
+		}
+	})
+
+	t.Run("Recreting items", func(t *testing.T) {
+		for _, tt := range sampleItems {
+			i, err := NewItem(tt.name, tt.desc, tt.qty)
+			if err != nil {
+				t.Errorf("unable to create new item: %s", err)
+			}
+
+			if err := s.SetItem(i); err != nil {
+				t.Error(err)
+			}
+			sampleKeys = append(sampleKeys, i.ID)
+		}
+	})
+
+	t.Run("DelItem function", func(t *testing.T) {
+		for _, k := range sampleKeys {
+			err := s.DelItem(k)
+			if err != nil {
+				t.Errorf("unable to delete key %#v: %s", k, err)
+			}
+		}
+	})
 }

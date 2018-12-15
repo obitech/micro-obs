@@ -55,3 +55,19 @@ func (s *Server) SetItem(i *Item) error {
 
 	return nil
 }
+
+// DelItems deletes one or more Items from Redis.
+func (s *Server) DelItems(items []*Item) error {
+	var keys = make([]string, len(items))
+	for i, v := range items {
+		keys[i] = v.ID
+	}
+
+	err := s.redis.Del(keys...).Err()
+	return err
+}
+
+// DelItem deletes a single Item by ID.
+func (s *Server) DelItem(id string) error {
+	return s.redis.Del(id).Err()
+}
