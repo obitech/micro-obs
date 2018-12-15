@@ -1,7 +1,6 @@
 package util
 
 import (
-	"fmt"
 	"io"
 
 	opentracing "github.com/opentracing/opentracing-go"
@@ -9,7 +8,7 @@ import (
 )
 
 // InitTracer returns an instance of Jaeger Tracer that samples 100% of traces and logs all spans to stdout.
-func InitTracer(service string, logger *Logger) (opentracing.Tracer, io.Closer) {
+func InitTracer(service string, logger *Logger) (opentracing.Tracer, io.Closer, error) {
 	cfg := &config.Configuration{
 		Sampler: &config.SamplerConfig{
 			Type:  "const",
@@ -21,7 +20,7 @@ func InitTracer(service string, logger *Logger) (opentracing.Tracer, io.Closer) 
 	}
 	tracer, closer, err := cfg.New(service, config.Logger(logger))
 	if err != nil {
-		panic(fmt.Sprintf("ERROR: cannot init Jaeger: %v\n", err))
+		return nil, nil, err
 	}
-	return tracer, closer
+	return tracer, closer, nil
 }

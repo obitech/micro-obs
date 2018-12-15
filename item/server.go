@@ -2,7 +2,6 @@ package item
 
 import (
 	"context"
-	"github.com/obitech/micro-obs/util"
 	"io"
 	"net"
 	"net/http"
@@ -14,6 +13,8 @@ import (
 
 	"github.com/go-redis/redis"
 	"github.com/gorilla/mux"
+	"github.com/obitech/micro-obs/util"
+	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 )
 
@@ -26,6 +27,7 @@ type Server struct {
 	server   *http.Server
 	router   *mux.Router
 	logger   *util.Logger
+	tracer   *opentracing.Tracer
 }
 
 // ServerOptions sets options when creating a new server.
@@ -36,8 +38,16 @@ func NewServer(options ...ServerOptions) (*Server, error) {
 	// Create default logger
 	logger, err := util.NewLogger("info")
 	if err != nil {
-		return nil, errors.Wrap(err, "Unable to create Logger")
+		return nil, errors.Wrap(err, "unable to create Logger")
 	}
+
+	// Create global tracer
+	tracer, closer, err := util.InitTracer("item", logger)
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to init tracer")
+	}
+	defer closer.Close()
+	opentracing.SetGlobalTracer(tracer)
 
 	// Sane defaults
 	rc, _ := NewRedisClient("redis://127.0.0.1:6379/0")
