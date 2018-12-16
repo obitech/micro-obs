@@ -9,7 +9,7 @@ scrape_configs:
 
 - job_name: 'jaeger'
   static_configs:
-  - targets: ['jaeger:5778','jaeger:14268','jaeger:16686','jaeger:14271']
+  - targets: [jaeger:16686']
 
 - job_name: 'prometheus'
   static_configs:

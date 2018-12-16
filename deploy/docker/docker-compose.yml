@@ -2,12 +2,11 @@ version: "3.3"
 services:
   jaeger:
     container_name: micro-obs-jaeger
-    image: jaegertracing/all-in-one:1.7
+    image: jaegertracing/all-in-one:1.8
     ports:
       - "6831:6831/udp"
       - "6832:6832/udp"
       - "16686:16686"
-    command: --log-level=debug
     restart: always
   prometheus:
     container_name: micro-obs-prometheus

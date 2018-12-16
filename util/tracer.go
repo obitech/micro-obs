@@ -4,13 +4,13 @@ import (
 	"io"
 	"net/http"
 
-	opentracing "github.com/opentracing/opentracing-go"
+	ot "github.com/opentracing/opentracing-go"
 	config "github.com/uber/jaeger-client-go/config"
 	"github.com/uber/jaeger-lib/metrics/prometheus"
 )
 
 // InitTracer returns an instance of Jaeger Tracer that samples 100% of traces and logs all spans to stdout.
-func InitTracer(service string, logger *Logger) (opentracing.Tracer, io.Closer, error) {
+func InitTracer(service string, logger *Logger) (ot.Tracer, io.Closer, error) {
 	cfg, err := config.FromEnv()
 	if err != nil {
 		return nil, nil, err
@@ -34,9 +34,9 @@ func InitTracer(service string, logger *Logger) (opentracing.Tracer, io.Closer, 
 // TracerMiddleware adds a Span to the request Context ready for other handlers to use it.
 func TracerMiddleware(inner http.Handler, route Route) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		tracer := opentracing.GlobalTracer()
+		tracer := ot.GlobalTracer()
 		span := tracer.StartSpan("request")
-		ctx := opentracing.ContextWithSpan(r.Context(), span)
+		ctx := ot.ContextWithSpan(r.Context(), span)
 		defer span.Finish()
 
 		span.SetTag("method", r.Method)

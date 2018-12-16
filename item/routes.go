@@ -90,10 +90,10 @@ func (s *Server) createRoutes() {
 		HandlerFunc: nil,
 	}
 	promHandler := promhttp.Handler()
-	promHandler = util.TracerMiddleware(promHandler, route)
+	// promHandler = util.TracerMiddleware(promHandler, route)
 	s.router.
 		Methods(route.Method).
 		Path(route.Pattern).
 		Name(route.Name).
-		Handler(util.LoggerMiddleware(promHandler, s.logger))
+		Handler(promHandler)
 }

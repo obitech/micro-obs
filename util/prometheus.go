@@ -3,9 +3,8 @@ package util
 import (
 	"net/http"
 
-	"github.com/prometheus/client_golang/prometheus/promhttp"
-
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 // RequestMetricHistogram defines a type of used metrics for a specific request, using Histograms for observations
