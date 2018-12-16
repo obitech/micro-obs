@@ -67,22 +67,13 @@ func (s *Server) createRoutes() {
 		h := route.HandlerFunc
 
 		// Logging each request
-		h = util.LoggerWrapper(h, s.logger)
+		h = util.LoggerMiddleware(h, s.logger)
 
-		// Closure chain to wrap HandlerFunc with monitoring capabilities
-		promHandler := promhttp.InstrumentHandlerInFlight(
-			rm.InFlightGauge,
-			promhttp.InstrumentHandlerDuration(
-				rm.Duration.MustCurryWith(prometheus.Labels{"handler": route.Name}),
-				promhttp.InstrumentHandlerCounter(
-					rm.Counter,
-					promhttp.InstrumentHandlerResponseSize(
-						rm.ResponseSize,
-						h,
-					),
-				),
-			),
-		)
+		// Tracing each request
+		h = util.TracerMiddleware(h, route)
+
+		// Monitoring each request
+		promHandler := util.PrometheusMiddleware(h, route, rm)
 
 		s.router.
 			Methods(route.Method).
@@ -92,9 +83,17 @@ func (s *Server) createRoutes() {
 	}
 
 	// Prometheus endpoint
+	route := util.Route{
+		Name: "metrics",
+		Method: "GET",
+		Pattern: "/metrics",
+		HandlerFunc: nil,
+	}
+	promHandler := promhttp.Handler()
+	promHandler = util.TracerMiddleware(promHandler, route)
 	s.router.
-		Methods("GET").
-		Path("/metrics").
-		Name("metrics").
-		Handler(util.LoggerWrapper(promhttp.Handler(), s.logger))
+		Methods(route.Method).
+		Path(route.Pattern).
+		Name(route.Name).
+		Handler(util.LoggerMiddleware(promHandler, s.logger))
 }

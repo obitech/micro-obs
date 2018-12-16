@@ -27,7 +27,6 @@ type Server struct {
 	server   *http.Server
 	router   *mux.Router
 	logger   *util.Logger
-	tracer   *opentracing.Tracer
 }
 
 // ServerOptions sets options when creating a new server.
@@ -40,15 +39,7 @@ func NewServer(options ...ServerOptions) (*Server, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to create Logger")
 	}
-
-	// Create global tracer
-	tracer, closer, err := util.InitTracer("item", logger)
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to init tracer")
-	}
-	defer closer.Close()
-	opentracing.SetGlobalTracer(tracer)
-
+	
 	// Sane defaults
 	rc, _ := NewRedisClient("redis://127.0.0.1:6379/0")
 	s := &Server{
@@ -93,6 +84,123 @@ func NewServer(options ...ServerOptions) (*Server, error) {
 	s.createRoutes()
 
 	return s, nil
+}
+
+// Run starts a Server and shuts it down properly on a SIGINT and SIGTERM.
+func (s *Server) Run() error {
+	defer s.logger.Sync()
+	defer s.redis.Close()
+
+	// Checking for redis connection
+	s.logger.Debug("Testing redis connection")
+	_, err := s.redis.Ping().Result()
+	if err != nil {
+		return errors.Wrap(err, "Unable to connect to redis server")
+	}
+
+	// Create TCP listener
+	l, err := net.Listen("tcp", s.address)
+	if err != nil {
+		return errors.Wrapf(err, "Failed creating listener on %s", s.address)
+	}
+
+	// Create HTTP Server
+	s.server = &http.Server{
+		Handler:        s.router,
+		ReadTimeout:    10 * time.Second,
+		WriteTimeout:   10 * time.Second,
+		MaxHeaderBytes: 1 << 20,
+	}
+
+	// Creating tracer
+	tracer, closer, err := util.InitTracer("item", s.logger)
+	defer closer.Close()
+	opentracing.SetGlobalTracer(tracer)
+
+	// Adjusting custom settings
+	go func() {
+		s.logger.Infow("Server listening",
+			"address", s.address,
+			"endpoint", s.endpoint,
+		)
+		s.logger.Fatal(s.server.Serve(l))
+	}()
+
+	// Buffered channel to receive a single os.Signal
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
+
+	// Blocking channel until interrupt occurs
+	<-stop
+	s.Stop()
+
+	return nil
+}
+
+// Stop will stop the server
+func (s *Server) Stop() {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
+
+	s.logger.Info("Shutting down")
+	if err := s.server.Shutdown(ctx); err != nil {
+		s.logger.Errorw("HTTP server shutdown",
+			"error", err,
+		)
+	}
+}
+
+// ServeHTTP dispatches the request to the matching mux handler.
+// This function is mainly intended for testing purposes.
+func (s *Server) serveHTTP(w http.ResponseWriter, r *http.Request) {
+	s.router.ServeHTTP(w, r)
+}
+
+func (s *Server) internalError(ctx context.Context, w http.ResponseWriter) {
+	status := http.StatusInternalServerError
+	parent := opentracing.SpanFromContext(ctx)
+	if parent != nil {
+		parent.SetTag("status", status)
+	}
+
+	w.Header().Del("Content-Type")
+	w.WriteHeader(status)
+	if _, err := io.WriteString(w, "Internal Server Error\n"); err != nil {
+		s.logger.Panicw("unable to send response",
+			"error", err,
+		)
+	}
+}
+
+// Respond sends a JSON-encoded response.
+func (s *Server) Respond(ctx context.Context, status int, m string, c int, data interface{}, w http.ResponseWriter) {
+	parent := opentracing.SpanFromContext(ctx)
+	parent.SetTag("status", status)
+	
+	span, ctx := opentracing.StartSpanFromContext(ctx, "respond")
+	defer span.Finish()
+
+	res, err := util.NewResponse(status, m, c, data)
+	if err != nil {
+		s.internalError(ctx, w)
+		s.logger.Panicw("unable to create JSON response",
+			"error", err,
+		)
+	}
+
+	err = res.SendJSON(w)
+	if err != nil {
+		s.internalError(ctx, w)
+		s.logger.Panicw("sending JSON response failed",
+			"error", err,
+			"response", res,
+		)
+	}
+	
+	span.LogKV(
+		"message", m,
+		"count", c,
+	)
 }
 
 // NewRedisClient creates a new go-redis/redis client according to passed options.
@@ -164,97 +272,7 @@ func SetRedisAddress(address string) ServerOptions {
 	}
 }
 
-// Run starts a Server and shuts it down properly on a SIGINT and SIGTERM.
-func (s *Server) Run() error {
-	defer s.logger.Sync()
-	defer s.redis.Close()
 
-	// Checking for redis connection
-	s.logger.Debug("Testing redis connection")
-	_, err := s.redis.Ping().Result()
-	if err != nil {
-		return errors.Wrap(err, "Unable to connect to redis server")
-	}
 
-	// Create TCP listener
-	l, err := net.Listen("tcp", s.address)
-	if err != nil {
-		return errors.Wrapf(err, "Failed creating listener on %s", s.address)
-	}
 
-	// Create HTTP Server
-	s.server = &http.Server{
-		Handler:        s.router,
-		ReadTimeout:    10 * time.Second,
-		WriteTimeout:   10 * time.Second,
-		MaxHeaderBytes: 1 << 20,
-	}
 
-	// Adjusting custom settings
-	go func() {
-		s.logger.Infow("Server listening",
-			"address", s.address,
-			"endpoint", s.endpoint,
-		)
-		s.logger.Fatal(s.server.Serve(l))
-	}()
-
-	// Buffered channel to receive a single os.Signal
-	stop := make(chan os.Signal, 1)
-	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
-
-	// Blocking channel until interrupt occurs
-	<-stop
-	s.Stop()
-
-	return nil
-}
-
-// ServeHTTP dispatches the request to the matching mux handler.
-// This function is mainly intended for testing purposes.
-func (s *Server) serveHTTP(w http.ResponseWriter, r *http.Request) {
-	s.router.ServeHTTP(w, r)
-}
-
-func (s *Server) internalError(w http.ResponseWriter) {
-	w.Header().Del("Content-Type")
-	w.WriteHeader(http.StatusInternalServerError)
-	if _, err := io.WriteString(w, "Internal Server Error\n"); err != nil {
-		s.logger.Panicw("unable to send response",
-			"error", err,
-		)
-	}
-}
-
-// Respond sends a JSON-encoded response.
-func (s *Server) Respond(status int, m string, c int, data interface{}, w http.ResponseWriter) {
-	res, err := util.NewResponse(status, m, c, data)
-	if err != nil {
-		s.internalError(w)
-		s.logger.Panicw("unable to create JSON response",
-			"error", err,
-		)
-	}
-
-	err = res.SendJSON(w)
-	if err != nil {
-		s.internalError(w)
-		s.logger.Panicw("sending JSON response failed",
-			"error", err,
-			"response", res,
-		)
-	}
-}
-
-// Stop will stop the server
-func (s *Server) Stop() {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
-	defer cancel()
-
-	s.logger.Info("Shutting down")
-	if err := s.server.Shutdown(ctx); err != nil {
-		s.logger.Errorw("HTTP server shutdown",
-			"error", err,
-		)
-	}
-}

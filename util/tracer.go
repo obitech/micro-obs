@@ -2,6 +2,7 @@ package util
 
 import (
 	"io"
+	"net/http"
 
 	opentracing "github.com/opentracing/opentracing-go"
 	config "github.com/uber/jaeger-client-go/config"
@@ -15,7 +16,7 @@ func InitTracer(service string, logger *Logger) (opentracing.Tracer, io.Closer, 
 			Param: 1,
 		},
 		Reporter: &config.ReporterConfig{
-			LogSpans: true,
+			LogSpans: false,
 		},
 	}
 	tracer, closer, err := cfg.New(service, config.Logger(logger))
@@ -23,4 +24,21 @@ func InitTracer(service string, logger *Logger) (opentracing.Tracer, io.Closer, 
 		return nil, nil, err
 	}
 	return tracer, closer, nil
+}
+
+// TracerMiddleware adds a Span to the request Context ready for other handlers to use it.
+func TracerMiddleware(inner http.Handler, route Route) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		tracer := opentracing.GlobalTracer()
+		span := tracer.StartSpan("request")
+		ctx := opentracing.ContextWithSpan(r.Context(), span)
+		defer span.Finish()
+
+		span.SetTag("method", r.Method)
+		span.SetTag("url", r.URL.Path)
+		span.SetTag("handler", route.Name)
+
+		r = r.WithContext(ctx)
+		inner.ServeHTTP(w, r)
+	})
 }

@@ -7,13 +7,15 @@ import (
 	"io/ioutil"
 	"net/http"
 
+	_ "github.com/opentracing/opentracing-go"
+
 	"github.com/gorilla/mux"
 )
 
 // pong sends a simple JSON response.
 func (s *Server) pong() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		s.Respond(http.StatusOK, "pong", 0, nil, w)
+		s.Respond(r.Context(), http.StatusOK, "pong", 0, nil, w)
 	}
 }
 
@@ -27,7 +29,7 @@ func (s *Server) getAllItems() http.HandlerFunc {
 			s.logger.Errorw("unable to SCAN redis for keys",
 				"error", err,
 			)
-			s.Respond(http.StatusInternalServerError, defaultErrMsg, 0, nil, w)
+			s.Respond(r.Context(), http.StatusInternalServerError, defaultErrMsg, 0, nil, w)
 			return
 		}
 
@@ -39,7 +41,7 @@ func (s *Server) getAllItems() http.HandlerFunc {
 					"key", k,
 					"error", err,
 				)
-				s.Respond(http.StatusInternalServerError, defaultErrMsg, 0, nil, w)
+				s.Respond(r.Context(), http.StatusInternalServerError, defaultErrMsg, 0, nil, w)
 				return
 			}
 			items = append(items, i)
@@ -47,11 +49,11 @@ func (s *Server) getAllItems() http.HandlerFunc {
 
 		l := len(items)
 		if l == 0 {
-			s.Respond(http.StatusOK, "no items present", 0, nil, w)
+			s.Respond(r.Context(), http.StatusOK, "no items present", 0, nil, w)
 			return
 		}
 
-		s.Respond(http.StatusOK, "items retrieved", l, items, w)
+		s.Respond(r.Context(), http.StatusOK, "items retrieved", l, items, w)
 	}
 }
 
@@ -79,7 +81,7 @@ func (s *Server) setItem(update bool) http.HandlerFunc {
 			s.logger.Errorw("unable to read request body",
 				"error", err,
 			)
-			s.Respond(http.StatusInternalServerError, "unable to read payload", 0, nil, w)
+			s.Respond(r.Context(), http.StatusInternalServerError, "unable to read payload", 0, nil, w)
 			return
 		}
 		defer r.Body.Close()
@@ -89,14 +91,14 @@ func (s *Server) setItem(update bool) http.HandlerFunc {
 			s.logger.Errorw("unable to parse payload",
 				"error", err,
 			)
-			s.Respond(http.StatusUnprocessableEntity, "unable to parse payload", 0, nil, w)
+			s.Respond(r.Context(), http.StatusUnprocessableEntity, "unable to parse payload", 0, nil, w)
 			return
 		}
 		if err := item.SetID(); err != nil {
 			s.logger.Errorw("unable to set item ID",
 				"error", err,
 			)
-			s.Respond(http.StatusInternalServerError, defaultErrMsg, 0, nil, w)
+			s.Respond(r.Context(), http.StatusInternalServerError, defaultErrMsg, 0, nil, w)
 			return
 		}
 		s.logger.Debugw("item struct created",
@@ -113,12 +115,12 @@ func (s *Server) setItem(update bool) http.HandlerFunc {
 				"key", item.ID,
 				"error", err,
 			)
-			s.Respond(http.StatusInternalServerError, defaultErrMsg, 0, nil, w)
+			s.Respond(r.Context(), http.StatusInternalServerError, defaultErrMsg, 0, nil, w)
 			return
 		}
 		if i != nil {
 			if !update {
-				s.Respond(http.StatusOK, fmt.Sprintf("item with name %s already exists", item.Name), 0, nil, w)
+				s.Respond(r.Context(), http.StatusOK, fmt.Sprintf("item with name %s already exists", item.Name), 0, nil, w)
 				return
 			}
 		}
@@ -130,11 +132,11 @@ func (s *Server) setItem(update bool) http.HandlerFunc {
 				"key", item.ID,
 				"error", err,
 			)
-			s.Respond(http.StatusInternalServerError, defaultErrMsg, 0, nil, w)
+			s.Respond(r.Context(), http.StatusInternalServerError, defaultErrMsg, 0, nil, w)
 			return
 		}
 
-		s.Respond(status, fmt.Sprintf("item %s created", item.Name), 1, []*Item{item}, w)
+		s.Respond(r.Context(), status, fmt.Sprintf("item %s created", item.Name), 1, []*Item{item}, w)
 	}
 }
 
@@ -152,10 +154,10 @@ func (s *Server) getItem() http.HandlerFunc {
 			)
 		}
 		if item == nil {
-			s.Respond(http.StatusOK, fmt.Sprintf("item with ID %s doesn't exist", key), 0, nil, w)
+			s.Respond(r.Context(), http.StatusOK, fmt.Sprintf("item with ID %s doesn't exist", key), 0, nil, w)
 			return
 		}
-		s.Respond(http.StatusOK, "item retrieved", 1, []*Item{item}, w)
+		s.Respond(r.Context(), http.StatusOK, "item retrieved", 1, []*Item{item}, w)
 	}
 }
 
@@ -171,9 +173,9 @@ func (s *Server) delItem() http.HandlerFunc {
 				"key", key,
 				"error", err,
 			)
-			s.Respond(http.StatusInternalServerError, "an error occured while tring to delete item", 0, nil, w)
+			s.Respond(r.Context(), http.StatusInternalServerError, "an error occured while tring to delete item", 0, nil, w)
 			return
 		}
-		s.Respond(http.StatusOK, "item deleted", 0, nil, w)
+		s.Respond(r.Context(), http.StatusOK, "item deleted", 0, nil, w)
 	}
 }

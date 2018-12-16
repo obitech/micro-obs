@@ -13,6 +13,63 @@ type Logger struct {
 	logger *zap.SugaredLogger
 }
 
+// NewLogger creates a new Logger.
+func NewLogger(level string) (*Logger, error) {
+	atom := zap.NewAtomicLevel()
+
+	switch level {
+	case "debug":
+		atom.SetLevel(zap.DebugLevel)
+	case "warn":
+		atom.SetLevel(zap.WarnLevel)
+	case "error":
+		atom.SetLevel(zap.ErrorLevel)
+	default:
+		level = "info"
+		atom.SetLevel(zap.InfoLevel)
+	}
+
+	cfg := zap.Config{
+		Development:       false,
+		DisableCaller:     true,
+		DisableStacktrace: false,
+		EncoderConfig:     zap.NewProductionEncoderConfig(),
+		Encoding:          "json",
+		ErrorOutputPaths:  []string{"stdout"},
+		Level:             atom,
+		OutputPaths:       []string{"stdout"},
+	}
+	l, err := cfg.Build()
+	if err != nil {
+		return nil, errors.Wrap(err, "Unable to initialize zap Logger")
+	}
+
+	l.Debug("Logger created",
+		zap.String("level", level),
+	)
+
+	return &Logger{logger: l.Sugar()}, nil
+}
+
+// LoggerMiddleware is a decorator for a HTTP Request, adding structured logging functionality
+func LoggerMiddleware(inner http.Handler, logger *Logger) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+		logger.Debugw("request received",
+			"address", r.RemoteAddr,
+			"method", r.Method,
+			"path", r.RequestURI,
+		)
+		inner.ServeHTTP(w, r)
+		logger.Infow("request completed",
+			"address", r.RemoteAddr,
+			"method", r.Method,
+			"path", r.RequestURI,
+			"duration", time.Since(start),
+		)
+	})
+}
+
 // Info uses fmt.Sprint to log a templated message.
 func (l *Logger) Info(args ...interface{}) {
 	l.logger.Info(args...)
@@ -102,61 +159,4 @@ func (l *Logger) Fatalw(msg string, kv ...interface{}) {
 // Sync flushes any buffered log entries.
 func (l *Logger) Sync() {
 	l.logger.Sync()
-}
-
-// NewLogger creates a new Logger.
-func NewLogger(level string) (*Logger, error) {
-	atom := zap.NewAtomicLevel()
-
-	switch level {
-	case "debug":
-		atom.SetLevel(zap.DebugLevel)
-	case "warn":
-		atom.SetLevel(zap.WarnLevel)
-	case "error":
-		atom.SetLevel(zap.ErrorLevel)
-	default:
-		level = "info"
-		atom.SetLevel(zap.InfoLevel)
-	}
-
-	cfg := zap.Config{
-		Development:       false,
-		DisableCaller:     false,
-		DisableStacktrace: false,
-		EncoderConfig:     zap.NewProductionEncoderConfig(),
-		Encoding:          "json",
-		ErrorOutputPaths:  []string{"stdout"},
-		Level:             atom,
-		OutputPaths:       []string{"stdout"},
-	}
-	l, err := cfg.Build()
-	if err != nil {
-		return nil, errors.Wrap(err, "Unable to initialize zap Logger")
-	}
-
-	l.Debug("Logger created",
-		zap.String("level", level),
-	)
-
-	return &Logger{logger: l.Sugar()}, nil
-}
-
-// LoggerWrapper is a decorator for a HTTP Request, adding structured logging functionality
-func LoggerWrapper(inner http.Handler, logger *Logger) http.HandlerFunc {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		start := time.Now()
-		logger.Debugw("request received",
-			"address", r.RemoteAddr,
-			"method", r.Method,
-			"path", r.RequestURI,
-		)
-		inner.ServeHTTP(w, r)
-		logger.Infow("request completed",
-			"address", r.RemoteAddr,
-			"method", r.Method,
-			"path", r.RequestURI,
-			"duration", time.Since(start),
-		)
-	})
 }

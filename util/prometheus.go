@@ -1,6 +1,10 @@
 package util
 
 import (
+	"net/http"
+
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -13,8 +17,8 @@ type RequestMetricHistogram struct {
 }
 
 // NewRequestMetricHistogram creates a RequestMetricHistogram struct with sane defaults
-func NewRequestMetricHistogram(durationBuckets, responseSizeBuckets []float64) RequestMetricHistogram {
-	return RequestMetricHistogram{
+func NewRequestMetricHistogram(durationBuckets, responseSizeBuckets []float64) *RequestMetricHistogram {
+	return &RequestMetricHistogram{
 		InFlightGauge: prometheus.NewGauge(prometheus.GaugeOpts{
 			Name: "in_flight_requests",
 			Help: "A gauge of requests currently being served by the wrapped handler.",
@@ -43,4 +47,23 @@ func NewRequestMetricHistogram(durationBuckets, responseSizeBuckets []float64) R
 			[]string{},
 		),
 	}
+}
+
+// PrometheusMiddleware wraps a request for monitoring via Prometheus.
+func PrometheusMiddleware(h http.Handler, route Route, rm *RequestMetricHistogram) http.Handler {
+	promHandler := promhttp.InstrumentHandlerInFlight(
+		rm.InFlightGauge,
+		promhttp.InstrumentHandlerDuration(
+			rm.Duration.MustCurryWith(prometheus.Labels{"handler": route.Name}),
+			promhttp.InstrumentHandlerCounter(
+				rm.Counter,
+				promhttp.InstrumentHandlerResponseSize(
+					rm.ResponseSize,
+					h,
+				),
+			),
+		),
+	)
+
+	return promHandler
 }

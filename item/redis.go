@@ -1,6 +1,7 @@
 package item
 
 import (
+	_ "github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 )
 
