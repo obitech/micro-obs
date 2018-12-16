@@ -11,15 +11,15 @@ import (
 
 // InitTracer returns an instance of Jaeger Tracer that samples 100% of traces and logs all spans to stdout.
 func InitTracer(service string, logger *Logger) (opentracing.Tracer, io.Closer, error) {
-	cfg := &config.Configuration{
-		Sampler: &config.SamplerConfig{
-			Type:  "const",
-			Param: 1,
-		},
-		Reporter: &config.ReporterConfig{
-			LogSpans: true,
-		},
+	cfg, err := config.FromEnv()
+	if err != nil {
+		return nil, nil, err
 	}
+
+	cfg.Sampler.Type = "const"
+	cfg.Sampler.Param = 1
+	cfg.Reporter.LogSpans = true
+
 	tracer, closer, err := cfg.New(
 		service,
 		config.Logger(logger),

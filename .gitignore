@@ -1,5 +1,6 @@
 /bin/order
 /bin/item
+/deploy/docker/data/*
 
 
 # Created by https://www.gitignore.io/api/go,macos,python,vagrant,terraform
