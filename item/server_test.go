@@ -2,6 +2,7 @@ package item
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -236,7 +237,7 @@ func TestEndpoints(t *testing.T) {
 					helperSendJSONItem(item, s, method, path, want, t)
 				})
 				t.Run("Verify item existence", func(t *testing.T) {
-					check, err := s.GetItem(item.ID)
+					check, err := s.RedisGetItem(context.Background(), item.ID)
 					if err != nil {
 						t.Errorf("unable to get item with key %s: %s", i.name, err)
 					}
@@ -254,7 +255,7 @@ func TestEndpoints(t *testing.T) {
 					helperSendJSONItem(item, s, method, path, want, t)
 				})
 				t.Run("Verify item existence", func(t *testing.T) {
-					check, err := s.GetItem(item.ID)
+					check, err := s.RedisGetItem(context.Background(), item.ID)
 					if err != nil {
 						t.Errorf("unable to get item with key %s: %s", i.name, err)
 					}
@@ -273,7 +274,7 @@ func TestEndpoints(t *testing.T) {
 					helperSendJSONItem(item, s, method, path, want, t)
 				})
 				t.Run("Verify item existence", func(t *testing.T) {
-					check, err := s.GetItem(item.ID)
+					check, err := s.RedisGetItem(context.Background(), item.ID)
 					if err != nil {
 						t.Errorf("unable to get item with key %s: %s", i.name, err)
 					}
@@ -292,7 +293,7 @@ func TestEndpoints(t *testing.T) {
 					helperSendJSONItem(item, s, method, path, want, t)
 				})
 				t.Run("Verify item existence", func(t *testing.T) {
-					check, err := s.GetItem(item.ID)
+					check, err := s.RedisGetItem(context.Background(), item.ID)
 					if err != nil {
 						t.Errorf("unable to get item with key %s: %s", i.name, err)
 					}
@@ -351,7 +352,7 @@ func TestEndpoints(t *testing.T) {
 					})
 
 					t.Run("Verify item existence", func(t *testing.T) {
-						check, err := s.GetItem(item.ID)
+						check, err := s.RedisGetItem(context.Background(), item.ID)
 						if err != nil {
 							t.Errorf("unable to get item with key %s: %s", item.ID, err)
 						}
@@ -413,7 +414,7 @@ func TestEndpoints(t *testing.T) {
 					})
 
 					t.Run("Verify item existence", func(t *testing.T) {
-						check, err := s.GetItem(item.ID)
+						check, err := s.RedisGetItem(context.Background(), item.ID)
 						if err != nil {
 							t.Errorf("unable to get item with key %s: %s", item.ID, err)
 						}

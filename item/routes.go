@@ -84,9 +84,9 @@ func (s *Server) createRoutes() {
 
 	// Prometheus endpoint
 	route := util.Route{
-		Name: "metrics",
-		Method: "GET",
-		Pattern: "/metrics",
+		Name:        "metrics",
+		Method:      "GET",
+		Pattern:     "/metrics",
 		HandlerFunc: nil,
 	}
 	promHandler := promhttp.Handler()

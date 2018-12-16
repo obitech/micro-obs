@@ -1,13 +1,18 @@
 package item
 
 import (
-	_ "github.com/opentracing/opentracing-go"
+	"context"
+
+	ot "github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 )
 
-// ScanKeys retrieves all keys from a redis instance.
+// RedisScanKeys retrieves all keys from a redis instance.
 // This uses the SCAN command so it's save to use on large database & in production.
-func (s *Server) ScanKeys() ([]string, error) {
+func (s *Server) RedisScanKeys(ctx context.Context) ([]string, error) {
+	span, _ := ot.StartSpanFromContext(ctx, "RedisScanKeys")
+	defer span.Finish()
+
 	var cursor uint64
 	var keys []string
 	var err error
@@ -27,8 +32,11 @@ func (s *Server) ScanKeys() ([]string, error) {
 	return keys, err
 }
 
-// GetItem retrieves an Item from Redis.
-func (s *Server) GetItem(k string) (*Item, error) {
+// RedisGetItem retrieves an Item from Redis.
+func (s *Server) RedisGetItem(ctx context.Context, k string) (*Item, error) {
+	span, _ := ot.StartSpanFromContext(ctx, "RedisGetItem")
+	defer span.Finish()
+
 	r, err := s.redis.HGetAll(k).Result()
 	if err != nil {
 		return nil, err
@@ -44,8 +52,11 @@ func (s *Server) GetItem(k string) (*Item, error) {
 	return i, err
 }
 
-// SetItem sets an Item as a hash in Redis.
-func (s *Server) SetItem(i *Item) error {
+// RedisSetItem sets an Item as a hash in Redis.
+func (s *Server) RedisSetItem(ctx context.Context, i *Item) error {
+	span, _ := ot.StartSpanFromContext(ctx, "RedisSetItem")
+	defer span.Finish()
+
 	k, fv := i.MarshalRedis()
 	for f, v := range fv {
 		_, err := s.redis.HSet(k, f, v).Result()
@@ -57,8 +68,11 @@ func (s *Server) SetItem(i *Item) error {
 	return nil
 }
 
-// DelItems deletes one or more Items from Redis.
-func (s *Server) DelItems(items []*Item) error {
+// RedisDelItems deletes one or more Items from Redis.
+func (s *Server) RedisDelItems(ctx context.Context, items []*Item) error {
+	span, _ := ot.StartSpanFromContext(ctx, "RedisDelItems")
+	defer span.Finish()
+
 	var keys = make([]string, len(items))
 	for i, v := range items {
 		keys[i] = v.ID
@@ -68,7 +82,10 @@ func (s *Server) DelItems(items []*Item) error {
 	return err
 }
 
-// DelItem deletes a single Item by ID.
-func (s *Server) DelItem(id string) error {
+// RedisDelItem deletes a single Item by ID.
+func (s *Server) RedisDelItem(ctx context.Context, id string) error {
+	span, _ := ot.StartSpanFromContext(ctx, "RedisDelItems")
+	defer span.Finish()
+
 	return s.redis.Del(id).Err()
 }

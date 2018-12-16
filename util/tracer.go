@@ -6,6 +6,7 @@ import (
 
 	opentracing "github.com/opentracing/opentracing-go"
 	config "github.com/uber/jaeger-client-go/config"
+	"github.com/uber/jaeger-lib/metrics/prometheus"
 )
 
 // InitTracer returns an instance of Jaeger Tracer that samples 100% of traces and logs all spans to stdout.
@@ -16,10 +17,14 @@ func InitTracer(service string, logger *Logger) (opentracing.Tracer, io.Closer, 
 			Param: 1,
 		},
 		Reporter: &config.ReporterConfig{
-			LogSpans: false,
+			LogSpans: true,
 		},
 	}
-	tracer, closer, err := cfg.New(service, config.Logger(logger))
+	tracer, closer, err := cfg.New(
+		service,
+		config.Logger(logger),
+		config.Metrics(prometheus.New()),
+	)
 	if err != nil {
 		return nil, nil, err
 	}

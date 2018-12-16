@@ -1,6 +1,7 @@
 package item
 
 import (
+	"context"
 	"reflect"
 	"strings"
 	"testing"
@@ -46,7 +47,7 @@ func TestItemRedis(t *testing.T) {
 				t.Errorf("unable to create new item: %s", err)
 			}
 
-			if err := s.SetItem(i); err != nil {
+			if err := s.RedisSetItem(context.Background(), i); err != nil {
 				t.Error(err)
 			}
 			sampleKeys = append(sampleKeys, i.ID)
@@ -54,7 +55,7 @@ func TestItemRedis(t *testing.T) {
 	})
 
 	t.Run("ScanKeys function", func(t *testing.T) {
-		keys, err := s.ScanKeys()
+		keys, err := s.RedisScanKeys(context.Background())
 		if err != nil {
 			t.Errorf("unable to SCAN redis for keys: %s", err)
 		}
@@ -67,7 +68,7 @@ func TestItemRedis(t *testing.T) {
 	t.Run("GetItem function", func(t *testing.T) {
 		var c int
 		for _, k := range sampleKeys {
-			i, err := s.GetItem(k)
+			i, err := s.RedisGetItem(context.Background(), k)
 			if err != nil {
 				t.Errorf("unable to retrieve item with key %s: %s", k, err)
 			}
@@ -86,7 +87,7 @@ func TestItemRedis(t *testing.T) {
 			items[i], _ = NewItem(v.name, v.desc, v.qty)
 		}
 
-		err := s.DelItems(items)
+		err := s.RedisDelItems(context.Background(), items)
 		if err != nil {
 			t.Errorf("unable to delete itemes: %s", err)
 		}
@@ -99,7 +100,7 @@ func TestItemRedis(t *testing.T) {
 				t.Errorf("unable to create new item: %s", err)
 			}
 
-			if err := s.SetItem(i); err != nil {
+			if err := s.RedisSetItem(context.Background(), i); err != nil {
 				t.Error(err)
 			}
 			sampleKeys = append(sampleKeys, i.ID)
@@ -108,7 +109,7 @@ func TestItemRedis(t *testing.T) {
 
 	t.Run("DelItem function", func(t *testing.T) {
 		for _, k := range sampleKeys {
-			err := s.DelItem(k)
+			err := s.RedisDelItem(context.Background(), k)
 			if err != nil {
 				t.Errorf("unable to delete key %#v: %s", k, err)
 			}

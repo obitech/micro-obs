@@ -39,7 +39,7 @@ func NewServer(options ...ServerOptions) (*Server, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to create Logger")
 	}
-	
+
 	// Sane defaults
 	rc, _ := NewRedisClient("redis://127.0.0.1:6379/0")
 	s := &Server{
@@ -174,11 +174,9 @@ func (s *Server) internalError(ctx context.Context, w http.ResponseWriter) {
 
 // Respond sends a JSON-encoded response.
 func (s *Server) Respond(ctx context.Context, status int, m string, c int, data interface{}, w http.ResponseWriter) {
-	parent := opentracing.SpanFromContext(ctx)
-	parent.SetTag("status", status)
-	
-	span, ctx := opentracing.StartSpanFromContext(ctx, "respond")
+	span, ctx := opentracing.StartSpanFromContext(ctx, "Respond")
 	defer span.Finish()
+	span.SetTag("status", status)
 
 	res, err := util.NewResponse(status, m, c, data)
 	if err != nil {
@@ -196,7 +194,7 @@ func (s *Server) Respond(ctx context.Context, status int, m string, c int, data 
 			"response", res,
 		)
 	}
-	
+
 	span.LogKV(
 		"message", m,
 		"count", c,
@@ -271,8 +269,3 @@ func SetRedisAddress(address string) ServerOptions {
 		return nil
 	}
 }
-
-
-
-
-

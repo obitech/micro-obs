@@ -1,10 +1,12 @@
 package item
 
 import (
+	"context"
 	"strconv"
 	"strings"
 
 	"github.com/obitech/micro-obs/util"
+	ot "github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 )
 
@@ -33,7 +35,10 @@ func NewItem(name, desc string, qty int) (*Item, error) {
 }
 
 // SetID creates a HashID from an already set Name field.
-func (i *Item) SetID() error {
+func (i *Item) SetID(ctx context.Context) error {
+	span, _ := ot.StartSpanFromContext(ctx, "SetID")
+	defer span.Finish()
+
 	id, err := util.StringToHashID(strings.ToLower(i.Name))
 	if err != nil {
 		return err

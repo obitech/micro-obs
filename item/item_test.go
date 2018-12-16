@@ -1,6 +1,7 @@
 package item
 
 import (
+	"context"
 	"reflect"
 	"strconv"
 	"testing"
@@ -59,7 +60,7 @@ func TestItem(t *testing.T) {
 			Desc: "test",
 			Qty:  0,
 		}
-		if err := i.SetID(); err != nil {
+		if err := i.SetID(context.Background()); err != nil {
 			t.Errorf("unable to set HashID: %s", err)
 		}
 		s, err := util.HashIDToString(i.ID)
