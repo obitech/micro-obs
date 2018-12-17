@@ -1,4 +1,4 @@
-package item
+package order
 
 import (
 	"github.com/obitech/micro-obs/util"
@@ -29,37 +29,9 @@ func (s *Server) createRoutes() {
 			Pattern:     "/healthz",
 			HandlerFunc: util.Healthz(),
 		},
-		util.Route{
-			Name:        "getAllItems",
-			Method:      "GET",
-			Pattern:     "/items",
-			HandlerFunc: s.getAllItems(),
-		},
-		util.Route{
-			Name:        "setItemsPOST",
-			Method:      "POST",
-			Pattern:     "/items",
-			HandlerFunc: s.setItem(false),
-		},
-		util.Route{
-			Name:        "setItemsPUT",
-			Method:      "PUT",
-			Pattern:     "/items",
-			HandlerFunc: s.setItem(true),
-		},
-		util.Route{
-			Name:        "getItem",
-			Method:      "GET",
-			Pattern:     "/items/{id:[a-zA-Z0-9]+}",
-			HandlerFunc: s.getItem(),
-		},
-		util.Route{
-			Name:        "delItem",
-			Method:      "DELETE",
-			Pattern:     "/items/{id:[a-zA-Z0-9]+}",
-			HandlerFunc: s.delItem(),
-		},
 	}
+
+	// TODO: implement routes
 
 	for _, route := range routes {
 		h := route.HandlerFunc

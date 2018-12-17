@@ -1,4 +1,4 @@
-package item
+package order
 
 import (
 	"context"
@@ -23,6 +23,7 @@ import (
 type Server struct {
 	address      string
 	endpoint     string
+	itemService  string
 	redis        *redis.Client
 	redisOps     uint64
 	server       *http.Server
@@ -47,6 +48,7 @@ func NewServer(options ...ServerOptions) (*Server, error) {
 	s := &Server{
 		address:      ":8080",
 		endpoint:     "127.0.0.1:8081",
+		itemService:  "127.0.0.1:9090",
 		redis:        rc,
 		logger:       logger,
 		router:       util.NewRouter(),
@@ -56,7 +58,7 @@ func NewServer(options ...ServerOptions) (*Server, error) {
 	// Applying custom settings
 	for _, fn := range options {
 		if err := fn(s); err != nil {
-			return nil, errors.Wrap(err, "Failed to set server options")
+			return nil, errors.Wrap(err, "failed to set server options")
 		}
 	}
 
@@ -116,10 +118,7 @@ func (s *Server) Run() error {
 	}
 
 	// Creating tracer
-	tracer, closer, err := util.InitTracer("item", s.logger)
-	if err != nil {
-		return errors.Wrapf(err, "unable to create tracer")
-	}
+	tracer, closer, err := util.InitTracer("order", s.logger)
 	defer closer.Close()
 	opentracing.SetGlobalTracer(tracer)
 
@@ -179,7 +178,7 @@ func (s *Server) internalError(ctx context.Context, w http.ResponseWriter) {
 }
 
 // Respond sends a JSON-encoded response.
-func (s *Server) Respond(ctx context.Context, status int, m string, c int, data []*Item, w http.ResponseWriter) {
+func (s *Server) Respond(ctx context.Context, status int, m string, c int, data []*Order, w http.ResponseWriter) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, "Respond")
 	defer span.Finish()
 	span.SetTag("status", status)
@@ -230,7 +229,6 @@ func SetServerAddress(address string) ServerOptions {
 		if err := util.CheckTCPAddress(address); err != nil {
 			return err
 		}
-
 		s.address = address
 		return nil
 	}
@@ -240,6 +238,16 @@ func SetServerAddress(address string) ServerOptions {
 func SetServerEndpoint(address string) ServerOptions {
 	return func(s *Server) error {
 		s.endpoint = address
+		return nil
+	}
+}
+
+func SetItemServiceAddress(address string) ServerOptions {
+	return func(s *Server) error {
+		if err := util.CheckTCPAddress(address); err != nil {
+			return err
+		}
+		s.itemService = address
 		return nil
 	}
 }

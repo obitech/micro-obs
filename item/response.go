@@ -1,4 +1,4 @@
-package util
+package item
 
 import (
 	"encoding/json"
@@ -7,15 +7,15 @@ import (
 
 // Response defines an API response.
 type Response struct {
-	Status  int         `json:"status"`
-	Message string      `json:"message"`
-	Count   int         `json:"count"`
-	Data    interface{} `json:"data"`
+	Status  int     `json:"status"`
+	Message string  `json:"message"`
+	Count   int     `json:"count"`
+	Data    []*Item `json:"data"`
 }
 
 // NewResponse returns a Response with a passed message string and slice of Data.
 // This will automatically set the Status field to 200.
-func NewResponse(s int, m string, c int, d interface{}) (Response, error) {
+func NewResponse(s int, m string, c int, d []*Item) (Response, error) {
 	return Response{
 		Status:  s,
 		Message: m,
