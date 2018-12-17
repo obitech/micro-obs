@@ -8,6 +8,7 @@ services:
       - "6832:6832/udp"
       - "16686:16686"
     restart: always
+
   prometheus:
     container_name: micro-obs-prometheus
     image: prom/prometheus:v2.5.0
@@ -15,6 +16,8 @@ services:
       - "9090:9090"
     volumes:
       - "./conf/prometheus.yml:/etc/prometheus/prometheus.yml"
+    restart: always
+
   grafana:
     container_name: micro-obs-grafana
     image: grafana/grafana:5.4.2
@@ -22,21 +25,40 @@ services:
       - "3000:3000"
     volumes:
       - "./data/grafana:/var/lib/grafana"
-  redis:
+    restart: always
+
+  redis-item:
     container_name: micro-obs-redis
     image: redis:5
-    ports:
-      - "6379:6379"
     restart: always
+
   item:
     container_name: micro-obs-item
-    image: obitech/micro-obs:master
-    command: item -r redis://redis:6379/0
+    image: obitech/micro-obs:order
+    command: item -r redis://redis-item:6379/0
     ports:
       - "8080:8080"
     environment:
       - "JAEGER_AGENT_HOST=jaeger"
       - "JAEGER_AGENT_PORT=6831"
     depends_on:
-      - redis
+      - redis-item
+    restart: always
+
+  redis-order:
+    container_name: micro-obs-redis-order
+    image: redis:5
+    restart: always
+
+  order:
+    container_name: micro-obs-order
+    image: obitech/micr-obs:order
+    command: order -r redis://redis-order:6379/0
+    ports:
+      - "9090:9090"
+    environment:
+      - "JAEGER_AGENT_HOST=jaeger"
+      - "JAEGER_AGENT_PORT=6831"
+    depends_on:
+      - redis-order
     restart: always
