@@ -7,11 +7,18 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var rootCmd = &cobra.Command{
-	Use:   "item",
-	Short: "Simple HTTP item serivce",
-	Run:   runServer,
-}
+// Default values to be used to initialize the item server
+var (
+	address  = ":8080"
+	endpoint = "127.0.0.1:8080"
+	logLevel = "info"
+	redis    = "redis://127.0.0.1:6379/0"
+	rootCmd  = &cobra.Command{
+		Use:   "item",
+		Short: "Simple HTTP item serivce",
+		Run:   runServer,
+	}
+)
 
 // Execute runs the cobra rootCommand.
 func Execute() {

@@ -10,7 +10,7 @@ import (
 )
 
 // InitTracer returns an instance of Jaeger Tracer that samples 100% of traces and logs all spans to stdout.
-func InitTracer(service string, logger *Logger) (ot.Tracer, io.Closer, error) {
+func InitTracer(serviceName string, logger *Logger) (ot.Tracer, io.Closer, error) {
 	cfg, err := config.FromEnv()
 	if err != nil {
 		return nil, nil, err
@@ -21,7 +21,7 @@ func InitTracer(service string, logger *Logger) (ot.Tracer, io.Closer, error) {
 	cfg.Reporter.LogSpans = true
 
 	tracer, closer, err := cfg.New(
-		service,
+		serviceName,
 		config.Logger(logger),
 		config.Metrics(prometheus.New()),
 	)

@@ -1,8 +1,12 @@
 package order
 
 import (
-	"github.com/obitech/micro-obs/item"
+	"net/http"
+	"strings"
 	"testing"
+
+	"github.com/alicebob/miniredis"
+	"github.com/obitech/micro-obs/item"
 )
 
 var (
@@ -22,6 +26,38 @@ var (
 	items          = []*item.Item{}
 	orders         = []*Order{}
 )
+
+func helperVerifyItem(item *item.Item, wantQty int, wantErr ErrReason, t *testing.T) {
+	err := verifyItem(item, wantQty)
+	t.Logf("(LOG) verifyItem(%#v, %#v) = err: %#v", item, wantQty, err)
+	if err != nil {
+		if err, ok := err.(*Err); ok {
+			if err.Reason != wantErr {
+				t.Errorf("wrong error type, got: %#v, want: %#v", err.Reason, wantErr)
+			}
+		} else {
+			t.Errorf("%#v should be of type *order.Err", err)
+		}
+	} else {
+		t.Errorf("should throw error, got: %#v, want: %#v", err, wantErr)
+	}
+}
+
+func helperInitItemServer(t *testing.T) (*miniredis.Miniredis, *item.Server) {
+	// Create mr for item service
+	_, mr := helperPrepareMiniredis(t)
+
+	// Setup server
+	s, err := item.NewServer(
+		item.SetRedisAddress(strings.Join([]string{"redis://", mr.Addr()}, "")),
+	)
+	if err != nil {
+		mr.Close()
+		t.Errorf("unable to create item server: %s", err)
+	}
+
+	return mr, s
+}
 
 func TestNewOrder(t *testing.T) {
 	for _, v := range sampleItems {
@@ -50,22 +86,6 @@ func TestNewOrder(t *testing.T) {
 				orders = append(orders, o)
 			}
 		})
-	}
-}
-
-func helperVerifyItem(item *item.Item, wantQty int, wantErr ErrReason, t *testing.T) {
-	err := verifyItem(item, wantQty)
-	t.Logf("(LOG) verifyItem(%#v, %#v) = err: %#v", item, wantQty, err)
-	if err != nil {
-		if err, ok := err.(*Err); ok {
-			if err.Reason != wantErr {
-				t.Errorf("wrong error type, got: %#v, want: %#v", err.Reason, wantErr)
-			}
-		} else {
-			t.Errorf("%#v should be of type *order.Err", err)
-		}
-	} else {
-		t.Errorf("should throw error, got: %#v, want: %#v", err, wantErr)
 	}
 }
 
@@ -99,7 +119,16 @@ func TestVerifyItem(t *testing.T) {
 	})
 }
 
+// TODO: Test getItem
+func TestGetItem(t *testing.T) {
+	itemMR, itemServer := helperInitItemServer(t)
+	defer itemMR.Close()
+
+	t.Run("verify Item server connection", func(t *testing.T) {
+		helperSendSimpleRequest(itemServer, "GET", "/", http.StatusOK, t)
+	})
+
+}
+
 // TODO: Test BuildOrder
 // TODO: Test OECantRetrieve
-
-// TODO: Test getItem

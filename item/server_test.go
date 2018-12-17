@@ -92,7 +92,7 @@ func helperSendJSONItem(item *Item, s *Server, method, path string, want int, t 
 	req.Header.Set("Content-Tye", "application/json")
 
 	w := httptest.NewRecorder()
-	s.serveHTTP(w, req)
+	s.ServeHTTP(w, req)
 
 	if w.Code != want {
 		t.Logf("wrong status code on request %#v %#v. Got: %d, want: %d", method, path, w.Code, want)
@@ -113,7 +113,7 @@ func helperSendSimpleRequest(s *Server, method, path string, want int, t *testin
 	}
 
 	w := httptest.NewRecorder()
-	s.serveHTTP(w, req)
+	s.ServeHTTP(w, req)
 
 	if w.Code != want {
 		t.Logf("wrong status code on request %#v %#v. Got: %d, want: %d", method, path, w.Code, want)

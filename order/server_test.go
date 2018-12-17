@@ -3,6 +3,7 @@ package order
 import (
 	"bytes"
 	_ "context"
+	"encoding/json"
 	_ "encoding/json"
 	_ "fmt"
 	"io/ioutil"
@@ -11,6 +12,9 @@ import (
 	_ "reflect"
 	"strings"
 	"testing"
+
+	"github.com/obitech/micro-obs/item"
+	"github.com/obitech/micro-obs/util"
 )
 
 var (
@@ -75,7 +79,32 @@ var (
 	}
 )
 
-func helperSendSimpleRequest(s *Server, method, path string, want int, t *testing.T) {
+func helperSendJSONItem(item *item.Item, s *item.Server, method, path string, want int, t *testing.T) {
+	js, err := json.Marshal(item)
+	if err != nil {
+		t.Errorf("Unable to marshal %#v: %s", item, err)
+	}
+	req, err := http.NewRequest(method, path, bytes.NewBuffer(js))
+	if err != nil {
+		t.Errorf("unable to create buffer from %s: %s", js, err)
+	}
+	req.Header.Set("Content-Tye", "application/json")
+
+	w := httptest.NewRecorder()
+	s.ServeHTTP(w, req)
+
+	if w.Code != want {
+		t.Logf("wrong status code on request %#v %#v. Got: %d, want: %d", method, path, w.Code, want)
+
+		res := w.Result()
+		b, _ := ioutil.ReadAll(res.Body)
+		res.Body.Close()
+		t.Logf("revceived: %s", b)
+		t.Fail()
+	}
+}
+
+func helperSendSimpleRequest(s util.Server, method, path string, want int, t *testing.T) {
 	body := bytes.NewBuffer([]byte{})
 	req, err := http.NewRequest(method, path, body)
 	if err != nil {
@@ -83,7 +112,7 @@ func helperSendSimpleRequest(s *Server, method, path string, want int, t *testin
 	}
 
 	w := httptest.NewRecorder()
-	s.serveHTTP(w, req)
+	s.ServeHTTP(w, req)
 
 	if w.Code != want {
 		t.Logf("wrong status code on request %#v %#v. Got: %d, want: %d", method, path, w.Code, want)

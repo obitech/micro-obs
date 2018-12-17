@@ -19,6 +19,10 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
+const (
+	serviceName = "item"
+)
+
 // Server is a wrapper for a HTTP server, with dependencies attached.
 type Server struct {
 	address      string
@@ -37,7 +41,7 @@ type ServerOptions func(*Server) error
 // NewServer creates a new Server according to options.
 func NewServer(options ...ServerOptions) (*Server, error) {
 	// Create default logger
-	logger, err := util.NewLogger("info")
+	logger, err := util.NewLogger("info", serviceName)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to create Logger")
 	}
@@ -158,7 +162,7 @@ func (s *Server) Stop() {
 
 // ServeHTTP dispatches the request to the matching mux handler.
 // This function is mainly intended for testing purposes.
-func (s *Server) serveHTTP(w http.ResponseWriter, r *http.Request) {
+func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.router.ServeHTTP(w, r)
 }
 
@@ -247,7 +251,7 @@ func SetServerEndpoint(address string) ServerOptions {
 // SetLogLevel sets the log level to either debug, warn, error or info. Info is default.
 func SetLogLevel(level string) ServerOptions {
 	return func(s *Server) error {
-		l, err := util.NewLogger(level)
+		l, err := util.NewLogger(level, serviceName)
 		if err != nil {
 			return err
 		}

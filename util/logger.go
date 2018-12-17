@@ -14,7 +14,7 @@ type Logger struct {
 }
 
 // NewLogger creates a new Logger.
-func NewLogger(level string) (*Logger, error) {
+func NewLogger(level, serviceName string) (*Logger, error) {
 	atom := zap.NewAtomicLevel()
 
 	switch level {
@@ -39,6 +39,12 @@ func NewLogger(level string) (*Logger, error) {
 		Level:             atom,
 		OutputPaths:       []string{"stdout"},
 	}
+
+	if cfg.InitialFields == nil {
+		cfg.InitialFields = make(map[string]interface{})
+	}
+	cfg.InitialFields["service"] = serviceName
+
 	l, err := cfg.Build()
 	if err != nil {
 		return nil, errors.Wrap(err, "Unable to initialize zap Logger")

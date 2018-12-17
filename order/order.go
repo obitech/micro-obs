@@ -18,6 +18,11 @@ type Order struct {
 	Items []*item.Item `json:"items"`
 }
 
+type orderItem struct {
+	id  string
+	qty int
+}
+
 // ErrReason encodes different error reasons for an Order to fail.
 type ErrReason int
 
@@ -47,28 +52,33 @@ func NewOrder(id int64, items []*item.Item) (*Order, error) {
 }
 
 // BuildOrder queries the item service to create a new order.
-func (s *Server) BuildOrder(items ...item.Item) (*Order, error) {
+func (s *Server) BuildOrder(items ...*orderItem) (*Order, error) {
 	// Get OrderID from Redis
-	var orderID int64
-	// TODO: retrieve orderID
+	id, err := s.RedisGetNextOrderID()
+	if err != nil {
+		return nil, err
+	}
 
 	// Get requested items for order
-	var orderItems []*item.Item
+	var oi []*item.Item
 	for _, v := range items {
-		item, err := s.getItem(v.ID)
+		// Get item from Item service
+		item, err := s.getItem(v.id)
 		if err != nil {
 			return nil, &Err{"", OECantRetrieve}
 		}
-		err = verifyItem(item, v.Qty)
+
+		// Check if item exists and qty is enough
+		err = verifyItem(item, v.qty)
 		if err != nil {
 			return nil, err
 		}
-		orderItems = append(orderItems, item)
+		oi = append(oi, item)
 	}
 
 	return &Order{
-		ID:    orderID,
-		Items: orderItems,
+		ID:    id,
+		Items: oi,
 	}, nil
 }
 

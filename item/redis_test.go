@@ -24,8 +24,6 @@ func TestItemRedis(t *testing.T) {
 	_, mr := helperPrepareMiniredis(t)
 	defer mr.Close()
 
-	var sampleKeys []string
-
 	addr := strings.Join([]string{"redis://", mr.Addr()}, "")
 	s, err := NewServer(
 		SetRedisAddress(addr),
@@ -34,6 +32,7 @@ func TestItemRedis(t *testing.T) {
 		t.Errorf("unable to create server: %s", err)
 	}
 
+	var sampleKeys []string
 	t.Run("Pinging miniredis with Server", func(t *testing.T) {
 		if _, err := s.redis.Ping().Result(); err != nil {
 			t.Errorf("unable to ping miniredis: %s", err)
