@@ -8,6 +8,7 @@ WORKDIR /app
 
 COPY go.mod go.sum Makefile ./
 COPY item/ item/
+COPY order/ order/
 COPY cmd/ cmd/
 COPY util/ util/
 
@@ -15,4 +16,4 @@ RUN go mod download
 RUN make build
 FROM alpine:latest
 
-COPY --from=builder /app/bin/item /usr/local/bin/
+COPY --from=builder /app/bin/* /usr/local/bin/

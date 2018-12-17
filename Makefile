@@ -5,7 +5,7 @@ DOCKERFILE=Dockerfile
 
 all: prepare test build
 
-build: build-item
+build: build-item build-order
 
 prepare:
 	go mod tidy
@@ -18,6 +18,9 @@ test:
 
 build-item:
 	go build -o bin/item ./cmd/item
+
+build-order:
+	go build -o bin/order ./cmd/order
 
 docker: prepare test docker-build
 
