@@ -20,8 +20,9 @@ import (
 )
 
 const (
-	serviceName = "order"
-	nextIDKey   = "nextID"
+	serviceName       = "order"
+	nextIDKey         = "nextID"
+	orderKeyNamespace = serviceName
 )
 
 // Server is a wrapper for a HTTP server, with dependencies attached.

@@ -52,7 +52,7 @@ func (s *Server) getAllItems() http.HandlerFunc {
 
 		l := len(items)
 		if l == 0 {
-			s.Respond(ctx, http.StatusOK, "no items present", 0, nil, w)
+			s.Respond(ctx, http.StatusNotFound, "no items present", 0, nil, w)
 			return
 		}
 
@@ -163,7 +163,7 @@ func (s *Server) getItem() http.HandlerFunc {
 			)
 		}
 		if item == nil {
-			s.Respond(r.Context(), http.StatusOK, fmt.Sprintf("item with ID %s doesn't exist", key), 0, nil, w)
+			s.Respond(r.Context(), http.StatusNotFound, fmt.Sprintf("item with ID %s doesn't exist", key), 0, nil, w)
 			return
 		}
 		s.Respond(r.Context(), http.StatusOK, "item retrieved", 1, []*Item{item}, w)

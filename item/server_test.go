@@ -72,7 +72,7 @@ var (
 		{"GET", "/healthz", http.StatusOK},
 		{"GET", "/asdasd", http.StatusNotFound},
 		{"GET", "/metrics", http.StatusOK},
-		{"GET", "/items", http.StatusOK},
+		{"GET", "/items", http.StatusNotFound},
 		{"POST", "/items", http.StatusUnprocessableEntity},
 		{"PUT", "/items", http.StatusUnprocessableEntity},
 		{"DELETE", "/", http.StatusMethodNotAllowed},
@@ -221,9 +221,9 @@ func TestEndpoints(t *testing.T) {
 				t.Errorf("unable to create server: %s", err)
 			}
 
-			t.Run("GET all items", func(t *testing.T) {
+			t.Run("GET all empty items", func(t *testing.T) {
 				method = "GET"
-				want = http.StatusOK
+				want = http.StatusNotFound
 				helperSendSimpleRequest(s, method, path, want, t)
 			})
 
@@ -334,9 +334,9 @@ func TestEndpoints(t *testing.T) {
 
 			path = "/items"
 
-			t.Run("GET all items", func(t *testing.T) {
+			t.Run("GET all empty items", func(t *testing.T) {
 				method = "GET"
-				want = http.StatusOK
+				want = http.StatusNotFound
 				helperSendSimpleRequest(s, method, path, want, t)
 			})
 

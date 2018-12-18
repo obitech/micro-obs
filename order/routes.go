@@ -29,6 +29,12 @@ func (s *Server) createRoutes() {
 			Pattern:     "/healthz",
 			HandlerFunc: util.Healthz(),
 		},
+		util.Route{
+			Name:        "getAllOrders",
+			Method:      "GET",
+			Pattern:     "/orders",
+			HandlerFunc: s.getAllOrders(),
+		},
 	}
 
 	// TODO: implement routes

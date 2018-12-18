@@ -47,13 +47,14 @@ services:
 
   redis-order:
     container_name: micro-obs-redis-order
+    command: redis-server --port 6380
     image: redis:5
     restart: always
 
   order:
     container_name: micro-obs-order
     image: obitech/micr-obs:order
-    command: order -r redis://redis-order:6379/0
+    command: order -r redis://redis-order:6380/0
     ports:
       - "9090:9090"
     environment:

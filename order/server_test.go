@@ -76,10 +76,11 @@ var (
 		{"GET", "/healthz", http.StatusOK},
 		{"GET", "/asdasd", http.StatusNotFound},
 		{"GET", "/metrics", http.StatusOK},
+		{"GET", "/orders", http.StatusNotFound},
 	}
 )
 
-func helperSendJSONItem(item *item.Item, s *item.Server, method, path string, want int, t *testing.T) {
+func helperSendJSONOrder(item *item.Item, s *item.Server, method, path string, want int, t *testing.T) {
 	js, err := json.Marshal(item)
 	if err != nil {
 		t.Errorf("Unable to marshal %#v: %s", item, err)
@@ -218,5 +219,27 @@ func TestEndpoints(t *testing.T) {
 		for _, tt := range basicEndpoints {
 			helperSendSimpleRequest(s, tt.method, tt.path, tt.wantStatus, t)
 		}
+	})
+
+	t.Run("Orders Endpoint", func(t *testing.T) {
+		var (
+			path   = "/orders"
+			method = "GET"
+			want   = http.StatusNotFound
+		)
+
+		_, mr := helperPrepareMiniredis(t)
+		defer mr.Close()
+
+		s, err := NewServer(
+			SetRedisAddress(strings.Join([]string{"redis://", mr.Addr()}, "")),
+		)
+		if err != nil {
+			t.Errorf("unable to create server: %s", err)
+		}
+
+		t.Run("GET all empty orders", func(t *testing.T) {
+			helperSendSimpleRequest(s, method, path, want, t)
+		})
 	})
 }

@@ -1,7 +1,8 @@
 package order
 
 import (
-	"net/http"
+	_ "net/http"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -22,12 +23,13 @@ var (
 		{" 123asd🙆   🙋 asdlloqwe", "test", 0},
 	}
 
-	sampleOrderIDs = []int64{-1, 0, 12, 42, 1242352235, 653423}
-	items          = []*item.Item{}
+	sampleOrderIDs = []int64{-1, 0, 12, 42, 1242352235}
+	items          = []*Item{}
 	orders         = []*Order{}
+	uniqueOrders   = []*Order{}
 )
 
-func helperVerifyItem(item *item.Item, wantQty int, wantErr ErrReason, t *testing.T) {
+func helperVerifyItem(item *Item, wantQty int, wantErr ErrReason, t *testing.T) {
 	err := verifyItem(item, wantQty)
 	t.Logf("(LOG) verifyItem(%#v, %#v) = err: %#v", item, wantQty, err)
 	if err != nil {
@@ -59,27 +61,26 @@ func helperInitItemServer(t *testing.T) (*miniredis.Miniredis, *item.Server) {
 	return mr, s
 }
 
-func TestNewOrder(t *testing.T) {
+func TestNewOrderItem(t *testing.T) {
 	for _, v := range sampleItems {
 		i, err := item.NewItem(v.name, v.desc, v.qty)
 		if err != nil {
 			t.Errorf("unable to create item: %s", err)
 		}
-		items = append(items, i)
 
+		oi, err := NewItem(i)
+		if err != nil {
+			t.Errorf("unable to create order item: %s", err)
+		}
+		items = append(items, oi)
+	}
+}
+
+func TestNewOrder(t *testing.T) {
+	for _, v := range items {
 		t.Run("With single item", func(t *testing.T) {
 			for _, id := range sampleOrderIDs {
-				o, err := NewOrder(id, []*item.Item{i})
-				if err != nil {
-					t.Errorf("unable to create order: %s", err)
-				}
-				orders = append(orders, o)
-			}
-		})
-
-		t.Run("With multiple items", func(t *testing.T) {
-			for _, id := range sampleOrderIDs {
-				o, err := NewOrder(id, items)
+				o, err := NewOrder(id, v)
 				if err != nil {
 					t.Errorf("unable to create order: %s", err)
 				}
@@ -87,6 +88,23 @@ func TestNewOrder(t *testing.T) {
 			}
 		})
 	}
+	t.Run("With multiple items", func(t *testing.T) {
+		for _, id := range sampleOrderIDs {
+			o, err := NewOrder(id, items...)
+			if err != nil {
+				t.Errorf("unable to create order: %s", err)
+			}
+			orders = append(orders, o)
+		}
+	})
+
+	t.Run("Order with nil Items", func(t *testing.T) {
+		_, err := NewOrder(42, nil)
+		if err == nil {
+			t.Error("should throw error with nil item")
+		}
+	})
+
 }
 
 func TestVerifyItem(t *testing.T) {
@@ -119,16 +137,29 @@ func TestVerifyItem(t *testing.T) {
 	})
 }
 
-// TODO: Test getItem
-func TestGetItem(t *testing.T) {
-	itemMR, itemServer := helperInitItemServer(t)
-	defer itemMR.Close()
+func TestMarshalRedis(t *testing.T) {
+	var idMarshalled string
+	var itemsMarshalled map[string]int
 
-	t.Run("verify Item server connection", func(t *testing.T) {
-		helperSendSimpleRequest(itemServer, "GET", "/", http.StatusOK, t)
-	})
+	for _, v := range orders {
+		idMarshalled, itemsMarshalled = v.MarshalRedis()
 
+		verify := &Order{}
+		err := UnmarshalRedis(idMarshalled, itemsMarshalled, verify)
+		if err != nil {
+			t.Errorf("unmarshaling failed: %s", err)
+		}
+		if verify.ID != v.ID {
+			t.Errorf("ID: %#v != %#v", verify.ID, v.ID)
+		}
+
+		if !reflect.DeepEqual(v.Items, verify.Items) {
+			t.Errorf("%+v != %+v", v.Items, verify.Items)
+		}
+	}
 }
+
+// TODO: Test getItem
 
 // TODO: Test BuildOrder
 // TODO: Test OECantRetrieve
