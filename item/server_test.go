@@ -78,7 +78,34 @@ var (
 		{"DELETE", "/", http.StatusMethodNotAllowed},
 		{"DELETE", "/items", http.StatusMethodNotAllowed},
 	}
+
+	invalidJSON = []string{
+		`test`,
+		`{}`,
+		`{"cat": "dog"}`,
+		`{"name": "test", "age": 5}`,
+	}
 )
+
+func helperSendJSON(js []byte, s *Server, method, path string, want int, t *testing.T) {
+	req, err := http.NewRequest(method, path, bytes.NewBuffer(js))
+	if err != nil {
+		t.Errorf("unable to create buffer from %#v: %s", js, err)
+	}
+	req.Header.Set("Content-Tye", "application/json")
+	w := httptest.NewRecorder()
+	s.ServeHTTP(w, req)
+
+	if w.Code != want {
+		t.Logf("wrong status code on request %#v %#v. Got: %d, want: %d", method, path, w.Code, want)
+
+		res := w.Result()
+		b, _ := ioutil.ReadAll(res.Body)
+		res.Body.Close()
+		t.Logf("revceived: %s", b)
+		t.Fail()
+	}
+}
 
 func helperSendJSONItem(item *Item, s *Server, method, path string, want int, t *testing.T) {
 	js, err := json.Marshal(item)
@@ -265,6 +292,12 @@ func TestEndpoints(t *testing.T) {
 				})
 			})
 
+			t.Run("POST nil item", func(t *testing.T) {
+				var item *Item
+				want = http.StatusUnprocessableEntity
+				helperSendJSONItem(item, s, method, path, want, t)
+			})
+
 			t.Run("PUT new item", func(t *testing.T) {
 				i := sampleItems[1]
 				item, _ := NewItem(i.name, i.desc, i.qty)
@@ -319,6 +352,24 @@ func TestEndpoints(t *testing.T) {
 					helperSendSimpleRequest(s, method, path, want, t)
 				}
 			})
+		})
+
+		t.Run("POST invalid JSON", func(t *testing.T) {
+			_, mr := helperPrepareMiniredis(t)
+			defer mr.Close()
+
+			s, err := NewServer(
+				SetRedisAddress(strings.Join([]string{"redis://", mr.Addr()}, "")),
+			)
+			if err != nil {
+				t.Errorf("unable to create server: %s", err)
+			}
+			for _, str := range invalidJSON {
+				method = "POST"
+				want = http.StatusUnprocessableEntity
+				path = "/items"
+				helperSendJSON([]byte(str), s, method, path, want, t)
+			}
 		})
 
 		t.Run("POST all items", func(t *testing.T) {

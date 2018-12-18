@@ -87,6 +87,7 @@ func (s *Server) setItem(update bool) http.HandlerFunc {
 			s.logger.Errorw("unable to read request body",
 				"error", err,
 			)
+			r.Body.Close()
 			s.Respond(ctx, http.StatusInternalServerError, "unable to read payload", 0, nil, w)
 			return
 		}
@@ -100,6 +101,13 @@ func (s *Server) setItem(update bool) http.HandlerFunc {
 			s.Respond(ctx, http.StatusUnprocessableEntity, "unable to parse payload", 0, nil, w)
 			return
 		}
+
+		// Catch empty response
+		if item.ID == "" {
+			s.Respond(ctx, http.StatusUnprocessableEntity, "invalid data", 0, nil, w)
+			return
+		}
+
 		if err := item.SetID(ctx); err != nil {
 			s.logger.Errorw("unable to set item ID",
 				"error", err,

@@ -33,7 +33,7 @@ services:
     ports:
       - "6379:6379"
     restart: always
-
+    
   item:
     container_name: micro-obs-item
     image: obitech/micro-obs:order

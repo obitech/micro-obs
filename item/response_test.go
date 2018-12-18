@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-func helperSendJSON(rd Response, t *testing.T) {
+func helperSendJSONResponse(rd Response, t *testing.T) {
 	// Start HTTP Test Server
 	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		err := rd.SendJSON(w)
@@ -69,7 +69,7 @@ func TestResponse(t *testing.T) {
 
 	t.Run("Send Response", func(t *testing.T) {
 		for _, rd := range validResponses {
-			helperSendJSON(rd, t)
+			helperSendJSONResponse(rd, t)
 		}
 	})
 }
