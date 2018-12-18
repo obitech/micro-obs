@@ -30,6 +30,8 @@ services:
   redis-item:
     container_name: micro-obs-redis
     image: redis:5
+    ports:
+      - "6379:6379"
     restart: always
 
   item:
@@ -47,8 +49,10 @@ services:
 
   redis-order:
     container_name: micro-obs-redis-order
-    command: redis-server --port 6380
     image: redis:5
+    command: redis-server --port 6380
+    ports:
+      - "6380:6380"
     restart: always
 
   order:

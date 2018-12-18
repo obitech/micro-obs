@@ -82,10 +82,10 @@ func NewServer(options ...ServerOptions) (*Server, error) {
 		}
 	})
 
-	s.logger.Debugw("Creating new server",
-		"address", s.address,
-		"endpoint", s.endpoint,
-	)
+		s.logger.Debugw("Creating new server",
+			"address", s.address,
+			"endpoint", s.endpoint,
+		)
 
 	// Setting routes
 	s.createRoutes()
@@ -97,13 +97,6 @@ func NewServer(options ...ServerOptions) (*Server, error) {
 func (s *Server) Run() error {
 	defer s.logger.Sync()
 	defer s.redis.Close()
-
-	// Checking for redis connection
-	s.logger.Debug("Testing redis connection")
-	_, err := s.redis.Ping().Result()
-	if err != nil {
-		return errors.Wrap(err, "Unable to connect to redis server")
-	}
 
 	// Create TCP listener
 	l, err := net.Listen("tcp", s.address)

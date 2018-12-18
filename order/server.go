@@ -102,13 +102,6 @@ func (s *Server) Run() error {
 	defer s.logger.Sync()
 	defer s.redis.Close()
 
-	// Checking for redis connection
-	s.logger.Debug("Testing redis connection")
-	_, err := s.redis.Ping().Result()
-	if err != nil {
-		return errors.Wrap(err, "Unable to connect to redis server")
-	}
-
 	// Create TCP listener
 	l, err := net.Listen("tcp", s.address)
 	if err != nil {

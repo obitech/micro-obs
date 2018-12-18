@@ -12,7 +12,7 @@ var (
 	address  = ":9090"
 	endpoint = "127.0.0.1:9091"
 	logLevel = "info"
-	redis    = "redis://127.0.0.1:6379/0"
+	redis    = "redis://127.0.0.1:6380/0"
 	item     = "127.0.0.1:8080"
 	rootCmd  = &cobra.Command{
 		Use:   "order",
@@ -35,5 +35,5 @@ func init() {
 	f.StringVarP(&endpoint, "endpoint", "e", endpoint, "endpoint for other services to reach order service")
 	f.StringVarP(&logLevel, "log-level", "l", logLevel, "log level (debug, info, warn, error), empty or invalid values will fallback to default")
 	f.StringVarP(&redis, "redis-address", "r", redis, "redis address to connect to")
-	f.StringVarP(&redis, "item-address", "i", item, "item service address to query")
+	f.StringVarP(&item, "item-address", "i", item, "item service address to query")
 }
