@@ -68,17 +68,17 @@ func (s *Server) setItem(update bool) http.HandlerFunc {
 
 		var (
 			defaultErrMsg string
+			defaultStatus int
 			item          = &Item{}
-			status        int
 		)
 
 		switch update {
 		case true:
 			defaultErrMsg = "unable to update item"
-			status = http.StatusOK
+			defaultStatus = http.StatusOK
 		case false:
 			defaultErrMsg = "unable to create item"
-			status = http.StatusCreated
+			defaultStatus = http.StatusCreated
 		}
 
 		// Accept payload
@@ -94,6 +94,7 @@ func (s *Server) setItem(update bool) http.HandlerFunc {
 		defer r.Body.Close()
 
 		// Parse payload
+		// TODO: handle multiple items
 		if err := json.Unmarshal(body, item); err != nil {
 			s.logger.Errorw("unable to parse payload",
 				"error", err,
@@ -122,7 +123,7 @@ func (s *Server) setItem(update bool) http.HandlerFunc {
 			"qty", item.Qty,
 		)
 
-		// Check for key existence
+		// Check for existence
 		i, err := s.RedisGetItem(ctx, item.ID)
 		if err != nil {
 			s.logger.Errorw("unable to retrieve Item from Redis",
@@ -150,7 +151,7 @@ func (s *Server) setItem(update bool) http.HandlerFunc {
 			return
 		}
 
-		s.Respond(ctx, status, fmt.Sprintf("item %s created", item.Name), 1, []*Item{item}, w)
+		s.Respond(ctx, defaultStatus, fmt.Sprintf("item %s created", item.Name), 1, []*Item{item}, w)
 	}
 }
 
@@ -169,12 +170,14 @@ func (s *Server) getItem() http.HandlerFunc {
 				"key", key,
 				"error", err,
 			)
-		}
-		if item == nil {
-			s.Respond(r.Context(), http.StatusNotFound, fmt.Sprintf("item with ID %s doesn't exist", key), 0, nil, w)
+			s.Respond(ctx, http.StatusInternalServerError, "unable to retreive item", 0, nil, w)
 			return
 		}
-		s.Respond(r.Context(), http.StatusOK, "item retrieved", 1, []*Item{item}, w)
+		if item == nil {
+			s.Respond(ctx, http.StatusNotFound, fmt.Sprintf("item with ID %s doesn't exist", key), 0, nil, w)
+			return
+		}
+		s.Respond(ctx, http.StatusOK, "item retrieved", 1, []*Item{item}, w)
 	}
 }
 
@@ -193,9 +196,9 @@ func (s *Server) delItem() http.HandlerFunc {
 				"key", key,
 				"error", err,
 			)
-			s.Respond(r.Context(), http.StatusInternalServerError, "an error occured while tring to delete item", 0, nil, w)
+			s.Respond(ctx, http.StatusInternalServerError, "an error occured while tring to delete item", 0, nil, w)
 			return
 		}
-		s.Respond(r.Context(), http.StatusOK, "item deleted", 0, nil, w)
+		s.Respond(ctx, http.StatusOK, "item deleted", 0, nil, w)
 	}
 }

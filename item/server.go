@@ -82,10 +82,10 @@ func NewServer(options ...ServerOptions) (*Server, error) {
 		}
 	})
 
-		s.logger.Debugw("Creating new server",
-			"address", s.address,
-			"endpoint", s.endpoint,
-		)
+	s.logger.Debugw("Creating new server",
+		"address", s.address,
+		"endpoint", s.endpoint,
+	)
 
 	// Setting routes
 	s.createRoutes()

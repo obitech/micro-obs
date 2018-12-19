@@ -79,6 +79,11 @@ var (
 		{"DELETE", "/items", http.StatusMethodNotAllowed},
 	}
 
+	validJSON = []string{
+		`{"name": "orange", "desc": "test", "qty": 1}`,
+		`{"name": "😍", "qty": 42, "desc": "yes"}`,
+	}
+
 	invalidJSON = []string{
 		`test`,
 		`{}`,
@@ -121,14 +126,27 @@ func helperSendJSONItem(item *Item, s *Server, method, path string, want int, t 
 	w := httptest.NewRecorder()
 	s.ServeHTTP(w, req)
 
+	res := w.Result()
+	b, _ := ioutil.ReadAll(res.Body)
+	defer res.Body.Close()
+
 	if w.Code != want {
 		t.Logf("wrong status code on request %#v %#v. Got: %d, want: %d", method, path, w.Code, want)
 
-		res := w.Result()
-		b, _ := ioutil.ReadAll(res.Body)
-		res.Body.Close()
 		t.Logf("revceived: %s", b)
 		t.Fail()
+	}
+
+	var vResponse Response
+	err = json.Unmarshal(b, &vResponse)
+	if err != nil {
+		t.Errorf("unable to unmarshal into response: %s", err)
+	}
+
+	for _, vItem := range vResponse.Data {
+		if !reflect.DeepEqual(vItem, item) {
+			t.Errorf("%+v != %+v", vItem, item)
+		}
 	}
 }
 
@@ -354,7 +372,7 @@ func TestEndpoints(t *testing.T) {
 			})
 		})
 
-		t.Run("POST invalid JSON", func(t *testing.T) {
+		t.Run("POST raw JSON", func(t *testing.T) {
 			_, mr := helperPrepareMiniredis(t)
 			defer mr.Close()
 
@@ -364,12 +382,21 @@ func TestEndpoints(t *testing.T) {
 			if err != nil {
 				t.Errorf("unable to create server: %s", err)
 			}
-			for _, str := range invalidJSON {
-				method = "POST"
-				want = http.StatusUnprocessableEntity
-				path = "/items"
-				helperSendJSON([]byte(str), s, method, path, want, t)
-			}
+
+			t.Run("valid JSON", func(t *testing.T) {
+				for _, str := range validJSON {
+					method = "POST"
+					want = http.StatusUnprocessableEntity
+					path = "/items"
+					helperSendJSON([]byte(str), s, method, path, want, t)
+				}
+			})
+
+			t.Run("invalid JSON", func(t *testing.T) {
+				for _, str := range invalidJSON {
+					helperSendJSON([]byte(str), s, method, path, want, t)
+				}
+			})
 		})
 
 		t.Run("POST all items", func(t *testing.T) {

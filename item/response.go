@@ -14,7 +14,7 @@ type Response struct {
 }
 
 // NewResponse returns a Response with a passed message string and slice of Data.
-// This will automatically set the Status field to 200.
+// TODO: make d variadic
 func NewResponse(s int, m string, c int, d []*Item) (Response, error) {
 	return Response{
 		Status:  s,

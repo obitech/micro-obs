@@ -35,9 +35,25 @@ func (s *Server) createRoutes() {
 			Pattern:     "/orders",
 			HandlerFunc: s.getAllOrders(),
 		},
+		util.Route{
+			Name:        "setOrder",
+			Method:      "POST",
+			Pattern:     "/orders",
+			HandlerFunc: s.setOrder(false),
+		},
+		util.Route{
+			Name:        "setOrder",
+			Method:      "PUT",
+			Pattern:     "/orders",
+			HandlerFunc: s.setOrder(true),
+		},
+		util.Route{
+			Name:        "getOrder",
+			Method:      "GET",
+			Pattern:     "/orders/{id:-?[0-9]+}",
+			HandlerFunc: s.getOrder(),
+		},
 	}
-
-	// TODO: implement routes
 
 	for _, route := range routes {
 		h := route.HandlerFunc

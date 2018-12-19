@@ -24,8 +24,8 @@ type Order struct {
 
 // Item holds stripped down information of a regular item, to be used in an Order.
 type Item struct {
-	ID  string
-	Qty int
+	ID  string `json:"id"`
+	Qty int    `json:"qty"`
 }
 
 // ErrReason encodes different error reasons for an Order to fail.
@@ -56,6 +56,14 @@ func (e *Err) Error() string {
 	return e.Err
 }
 
+// NewItem creates a new Item from an existing Item.
+func NewItem(item *item.Item) (*Item, error) {
+	return &Item{
+		ID:  item.ID,
+		Qty: item.Qty,
+	}, nil
+}
+
 // NewOrder creates a new order according to arguments. This will sort the passed items.
 func NewOrder(id int64, items ...*Item) (*Order, error) {
 	oi := make([]*Item, len(items))
@@ -74,14 +82,6 @@ func NewOrder(id int64, items ...*Item) (*Order, error) {
 	return &Order{
 		ID:    id,
 		Items: oi,
-	}, nil
-}
-
-// NewItem creates a new Item from an existing Item.
-func NewItem(item *item.Item) (*Item, error) {
-	return &Item{
-		ID:  item.ID,
-		Qty: item.Qty,
 	}, nil
 }
 
