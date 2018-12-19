@@ -2,6 +2,7 @@ package item
 
 import (
 	"context"
+	"encoding/json"
 	"strconv"
 	"strings"
 
@@ -32,6 +33,28 @@ func NewItem(name, desc string, qty int) (*Item, error) {
 		Desc: desc,
 		Qty:  qty,
 	}, nil
+}
+
+// DataToItems takes a JSON-encoded byte array and marshals it into a list of item.Items
+func DataToItems(data []byte) ([]*Item, error) {
+	items := []*Item{}
+
+	err := json.Unmarshal(data, &items)
+	if err != nil {
+		return nil, errors.Wrapf(err, "unable to marshal %s", data)
+	}
+
+	if len(items) == 0 {
+		return nil, errors.New("data can't be empty")
+	}
+
+	for _, i := range items {
+		if err = i.SetID(context.Background()); err != nil {
+			return nil, errors.Wrapf(err, "unable to set HashID of %s", i.Name)
+		}
+	}
+
+	return items, nil
 }
 
 // SetID creates a HashID from an already set Name field.

@@ -399,14 +399,14 @@ func TestEndpoints(t *testing.T) {
 					for _, o := range uniqueOrders {
 						helperSendJSONOrder(o, s, method, path, want, t)
 					}
-					
+
 					t.Run("Verifying with GET", func(t *testing.T) {
 						for _, o := range uniqueOrders {
-								method = "GET"
-								want = http.StatusOK
-								path = fmt.Sprintf("/orders/%d", o.ID)
+							method = "GET"
+							want = http.StatusOK
+							path = fmt.Sprintf("/orders/%d", o.ID)
 
-								helperSendJSONandVerify(s, method, path, want, t, o)
+							helperSendJSONandVerify(s, method, path, want, t, o)
 						}
 					})
 				})

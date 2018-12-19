@@ -82,6 +82,7 @@ var (
 	validJSON = []string{
 		`{"name": "orange", "desc": "test", "qty": 1}`,
 		`{"name": "😍", "qty": 42, "desc": "yes"}`,
+		`[{"name": "😍aa", "qty": 42, "desc": "yes"}]`,
 	}
 
 	invalidJSON = []string{

@@ -26,6 +26,19 @@ var (
 		{"     ", "﷽", 249093419},
 		{" 123asd🙆   🙋 asdlloqwe", "test", 0},
 	}
+
+	itemsJSON = []struct {
+		js            string
+		shouldSucceed bool
+	}{
+		{`[{"name": "test", "desc": "test", "qty": 100}]`, true},
+		{`[{"name": "abc2", "desc": "test", "qty": 100}, {"name": "abc", "desc": "test", "qty": 100}]`, true},
+		{`[{"name": "😍", "desc": "test", "qty": 100}, {"name": "abc", "desc": "test", "qty": 100},{"name": "123", "desc": " ", "qty": 42}]`, true},
+		{`[{}]`, false},
+		{`{`, false},
+		{`{}`, false},
+		{`[{"unknown": "key"}]`, false},
+	}
 )
 
 func TestItem(t *testing.T) {
@@ -114,6 +127,25 @@ func TestItem(t *testing.T) {
 				t.Errorf("%#v != %#v", i, items[c])
 			}
 			c++
+		}
+	})
+}
+
+func TestDataToItems(t *testing.T) {
+	t.Run("Sample JSON", func(t *testing.T) {
+		for _, tt := range itemsJSON {
+			_, err := DataToItems([]byte(tt.js))
+
+			if tt.shouldSucceed {
+				if err != nil {
+					t.Errorf("unable to create items: %s", err)
+				}
+			} else {
+				if err == nil {
+					t.Errorf("should throw error with %s", tt.js)
+				}
+			}
+
 		}
 	})
 }

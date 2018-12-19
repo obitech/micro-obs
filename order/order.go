@@ -97,7 +97,7 @@ func (s *Server) BuildOrder(ctx context.Context, items ...*Item) (*Order, error)
 	var oi []*Item
 	for _, v := range items {
 		// Get item from Item service
-		item, err := s.getItem(v.ID)
+		item, err := s.getItem(ctx, v.ID)
 		if err != nil {
 			return nil, &Err{"", OECantRetrieve}
 		}
@@ -160,7 +160,7 @@ func UnmarshalRedis(id string, items map[string]int, order *Order) error {
 }
 
 // getItem will query the item service to retrieve a item for a specific quantity
-func (s *Server) getItem(itemID string) (*Item, error) {
+func (s *Server) getItem(ctx context.Context, itemID string) (*Item, error) {
 	// Contact Item service
 	resp, err := http.Get(s.itemService)
 	if err != nil {
