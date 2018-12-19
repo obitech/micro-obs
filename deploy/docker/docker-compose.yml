@@ -57,7 +57,7 @@ services:
 
   order:
     container_name: micro-obs-order
-    image: obitech/micr-obs:order
+    image: obitech/micro-obs:order
     command: order -r redis://redis-order:6380/0
     ports:
       - "9090:9090"
