@@ -104,7 +104,7 @@ func (s *Server) setItem(update bool) http.HandlerFunc {
 		}
 
 		// Catch empty response
-		if item.ID == "" {
+		if item.Name == "" {
 			s.Respond(ctx, http.StatusUnprocessableEntity, "invalid data", 0, nil, w)
 			return
 		}

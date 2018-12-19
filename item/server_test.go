@@ -82,14 +82,14 @@ var (
 	validJSON = []string{
 		`{"name": "orange", "desc": "test", "qty": 1}`,
 		`{"name": "😍", "qty": 42, "desc": "yes"}`,
-		`[{"name": "😍aa", "qty": 42, "desc": "yes"}]`,
+		// `[{"name": "😍aa", "qty": 42, "desc": "yes"}]`,
+		// `[{"name": "😍aabasd", "qty": 42, "desc": "yes"}, {"name": "bread", "desc": "love it", "qty": 15}]`,
 	}
 
 	invalidJSON = []string{
 		`test`,
 		`{}`,
 		`{"cat": "dog"}`,
-		`{"name": "test", "age": 5}`,
 	}
 )
 
@@ -103,6 +103,7 @@ func helperSendJSON(js []byte, s *Server, method, path string, want int, t *test
 	s.ServeHTTP(w, req)
 
 	if w.Code != want {
+		t.Logf("sent: %s", string(js))
 		t.Logf("wrong status code on request %#v %#v. Got: %d, want: %d", method, path, w.Code, want)
 
 		res := w.Result()
@@ -387,7 +388,7 @@ func TestEndpoints(t *testing.T) {
 			t.Run("valid JSON", func(t *testing.T) {
 				for _, str := range validJSON {
 					method = "POST"
-					want = http.StatusUnprocessableEntity
+					want = http.StatusCreated
 					path = "/items"
 					helperSendJSON([]byte(str), s, method, path, want, t)
 				}
@@ -395,6 +396,7 @@ func TestEndpoints(t *testing.T) {
 
 			t.Run("invalid JSON", func(t *testing.T) {
 				for _, str := range invalidJSON {
+					want = http.StatusUnprocessableEntity
 					helperSendJSON([]byte(str), s, method, path, want, t)
 				}
 			})
