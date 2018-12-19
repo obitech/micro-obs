@@ -1,5 +1,6 @@
 /bin/order
 /bin/item
+/bin/dummy
 /deploy/docker/data/*
 
 
