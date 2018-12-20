@@ -3,6 +3,7 @@ package item
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -18,6 +19,10 @@ type Item struct {
 	ID   string `json:"id"`
 	Desc string `json:"desc"`
 	Qty  int    `json:"qty"`
+}
+
+func (i *Item) String() string {
+	return fmt.Sprintf("Name:%s ID:%s Desc:%s Qty:%d", i.Name, i.ID, i.Desc, i.Qty)
 }
 
 // NewItem creates a new item where the ID becomes the HashID of the lowercase name.
