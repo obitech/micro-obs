@@ -1,6 +1,7 @@
 package order
 
 import (
+	"fmt"
 	"context"
 	"io"
 	"net"
@@ -200,10 +201,14 @@ func (s *Server) Respond(ctx context.Context, status int, m string, c int, data 
 		)
 	}
 
+	// Tracing information
+	for k, v := range w.Header() {
+		span.SetTag(fmt.Sprintf("header.%s",k),v)
+	}
 	span.LogKV(
 		"message", m,
 		"count", c,
-		"header", w.Header(),
+		"data", data,
 	)
 }
 

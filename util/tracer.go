@@ -2,6 +2,7 @@ package util
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"net/http"
 
@@ -51,7 +52,9 @@ func TracerMiddleware(inner http.Handler, route Route) http.HandlerFunc {
 			defer span.Finish()
 			ctx = ot.ContextWithSpan(r.Context(), span)
 		}
-
+		for k, v := range r.Header {
+			span.SetTag(fmt.Sprintf("header.%s", k), v)
+		}
 		span.SetTag("method", r.Method)
 		span.SetTag("url", r.URL.Path)
 		span.SetTag("handler", route.Name)

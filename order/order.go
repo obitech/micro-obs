@@ -30,11 +30,11 @@ type Item struct {
 }
 
 func (o *Order) String() string {
-	return fmt.Sprintf("ID=%d Items=%+v,", o.ID, o.Items)
+	return fmt.Sprintf("ID:%d Items:%+v", o.ID, o.Items)
 }
 
 func (i *Item) String() string {
-	return fmt.Sprintf("ID=%s Qty=%d,", i.ID, i.Qty)
+	return fmt.Sprintf("ID:%s Qty:%d", i.ID, i.Qty)
 }
 
 // NewItem creates a new Item from an existing Item.
