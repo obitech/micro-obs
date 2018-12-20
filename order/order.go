@@ -11,7 +11,7 @@ import (
 	"strings"
 
 	"github.com/obitech/micro-obs/item"
-	_ "github.com/opentracing/opentracing-go"
+	ot "github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 )
 
@@ -28,32 +28,12 @@ type Item struct {
 	Qty int    `json:"qty"`
 }
 
-// ErrReason encodes different error reasons for an Order to fail.
-type ErrReason int
-
-// This block defines error reasons
-const (
-	OENotEnough ErrReason = iota
-	OENotFound
-	OECantRetrieve
-)
-
-// Err provides Errors with additional information.
-type Err struct {
-	Err    string
-	Reason ErrReason
-}
-
 func (o *Order) String() string {
 	return fmt.Sprintf("ID=%d Items=%+v,", o.ID, o.Items)
 }
 
 func (i *Item) String() string {
 	return fmt.Sprintf("ID=%s Qty=%d,", i.ID, i.Qty)
-}
-
-func (e *Err) Error() string {
-	return e.Err
 }
 
 // NewItem creates a new Item from an existing Item.
@@ -64,56 +44,37 @@ func NewItem(item *item.Item) (*Item, error) {
 	}, nil
 }
 
+// Sort will sort the order items according to ID
+func (o *Order) Sort() error {
+	if o.Items == nil || len(o.Items) == 0 {
+		return errors.New("order needs items")
+	}
+
+	// Sort the list of items according to ID
+	sort.Slice(o.Items, func(i, j int) bool {
+		return strings.Compare(o.Items[i].ID, o.Items[j].ID) == -1
+	})
+
+	return nil
+}
+
 // NewOrder creates a new order according to arguments. This will sort the passed items.
 func NewOrder(id int64, items ...*Item) (*Order, error) {
 	oi := make([]*Item, len(items))
 	for i, v := range items {
 		if v == nil {
-			return nil, errors.New("item can't be nil")
+			return nil, errors.New("order needs items")
 		}
 		oi[i] = v
 	}
 
-	// Sort the list of items according to ID
-	sort.Slice(oi, func(i, j int) bool {
-		return strings.Compare(oi[i].ID, oi[j].ID) == -1
-	})
-
-	return &Order{
+	order := &Order{
 		ID:    id,
 		Items: oi,
-	}, nil
-}
-
-// BuildOrder queries the item service to create a new order.
-func (s *Server) BuildOrder(ctx context.Context, items ...*Item) (*Order, error) {
-	// Get OrderID from Redis
-	id, err := s.RedisGetNextOrderID(ctx)
-	if err != nil {
-		return nil, err
 	}
 
-	// Get requested items for order
-	var oi []*Item
-	for _, v := range items {
-		// Get item from Item service
-		item, err := s.getItem(ctx, v.ID)
-		if err != nil {
-			return nil, &Err{"", OECantRetrieve}
-		}
-
-		// Check if item exists and qty is enough
-		err = verifyItem(item, v.Qty)
-		if err != nil {
-			return nil, err
-		}
-		oi = append(oi, item)
-	}
-
-	return &Order{
-		ID:    id,
-		Items: oi,
-	}, nil
+	order.Sort()
+	return order, nil
 }
 
 // MarshalRedis marshals an Order to hand over to go-redis.
@@ -161,31 +122,36 @@ func UnmarshalRedis(id string, items map[string]int, order *Order) error {
 
 // getItem will query the item service to retrieve a item for a specific quantity
 func (s *Server) getItem(ctx context.Context, itemID string) (*Item, error) {
+	span, ctx := ot.StartSpanFromContext(ctx, "getItem")
+	defer span.Finish()
+
 	// Contact Item service
-	resp, err := http.Get(s.itemService)
+	// TODO: trace this
+	addr := fmt.Sprintf("%s/items/%s", s.itemService, itemID)
+	resp, err := http.Get(addr)
 	if err != nil {
-		return nil, errors.Wrapf(err, "unable to connect to Item Service")
+		return nil, errors.Wrapf(err, "unable to connect to item service")
 	}
 	if resp.StatusCode != http.StatusOK {
-		return nil, errors.Errorf("invalid status code from Item Service: %d", resp.StatusCode)
+		return nil, errors.Errorf("invalid status code from item service: %d", resp.StatusCode)
 	}
 
-	// Get response
+	// Read response
 	b, err := ioutil.ReadAll(resp.Body)
-	resp.Body.Close()
 	if err != nil {
-		return nil, errors.Wrapf(err, "unable to read response from Item Service")
+		return nil, errors.Wrapf(err, "unable to read response from item service")
 	}
+	defer resp.Body.Close()
 
 	// Parse respone
 	var r item.Response
 	err = json.Unmarshal(b, &r)
 	if err != nil {
-		return nil, errors.Wrapf(err, "unalbe to parse respone from Item Service")
+		return nil, errors.Wrapf(err, "unalbe to parse respone from item service")
 	}
 
 	if r.Count == 0 || r.Data == nil {
-		return nil, nil
+		return nil, errors.New("no items returned from item service")
 	}
 
 	// Retrieve items from response
@@ -197,15 +163,5 @@ func (s *Server) getItem(ctx context.Context, itemID string) (*Item, error) {
 			}, nil
 		}
 	}
-	return nil, nil
-}
-
-func verifyItem(item *Item, wantQty int) error {
-	if item == nil {
-		return &Err{"item doesn't exist", OENotFound}
-	}
-	if item.Qty < wantQty {
-		return &Err{fmt.Sprintf("not enough items, want %d, in stock: %d", wantQty, item.Qty), OENotEnough}
-	}
-	return nil
+	return nil, errors.New("no items left to yield")
 }

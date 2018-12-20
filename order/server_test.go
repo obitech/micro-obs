@@ -24,6 +24,18 @@ var (
 		"192.0.2.1:http",
 	}
 
+	itemServiceAddr = []struct {
+		addr  string
+		valid bool
+	}{
+		{"http://localhost:127.0.0.1:9090", true},
+		{"http://127.0.0.1:8080", true},
+		{"localhost", true},
+		{"example.org", true},
+		{"example.org:8080", true},
+		{"127.0.0.1:8080", false},
+	}
+
 	invalidListeningAddr = []string{
 		":9999999",
 		":-1",
@@ -341,17 +353,17 @@ func TestNewServer(t *testing.T) {
 
 	t.Run("Creating new server with custom itemService address", func(t *testing.T) {
 		t.Run("Checking valid addresses", func(t *testing.T) {
-			for _, v := range validListeningAddr {
-				if _, err := NewServer(SetItemServiceAddress(v)); err != nil {
-					t.Errorf("error while creating new item server: %#v", err)
-				}
-			}
-		})
+			for _, tt := range itemServiceAddr {
+				_, err := NewServer(SetItemServiceAddress(tt.addr))
 
-		t.Run("Checking invalid addresses", func(t *testing.T) {
-			for _, v := range invalidListeningAddr {
-				if _, err := NewServer(SetItemServiceAddress(v)); err == nil {
-					t.Errorf("expected error while setting redis address to %#v, got %#v", v, err)
+				if tt.valid {
+					if err != nil {
+						t.Errorf("error while creating new item server: %#v", err)
+					}
+				} else {
+					if err == nil {
+						t.Errorf("should throw error with item address %s", tt.addr)
+					}
 				}
 			}
 		})

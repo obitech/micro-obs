@@ -29,22 +29,6 @@ var (
 	uniqueOrders   = []*Order{}
 )
 
-func helperVerifyItem(item *Item, wantQty int, wantErr ErrReason, t *testing.T) {
-	err := verifyItem(item, wantQty)
-	t.Logf("(LOG) verifyItem(%#v, %#v) = err: %#v", item, wantQty, err)
-	if err != nil {
-		if err, ok := err.(*Err); ok {
-			if err.Reason != wantErr {
-				t.Errorf("wrong error type, got: %#v, want: %#v", err.Reason, wantErr)
-			}
-		} else {
-			t.Errorf("%#v should be of type *order.Err", err)
-		}
-	} else {
-		t.Errorf("should throw error, got: %#v, want: %#v", err, wantErr)
-	}
-}
-
 func helperInitItemServer(t *testing.T) (*miniredis.Miniredis, *item.Server) {
 	// Create mr for item service
 	_, mr := helperPrepareMiniredis(t)
@@ -107,36 +91,6 @@ func TestNewOrder(t *testing.T) {
 
 }
 
-func TestVerifyItem(t *testing.T) {
-	item := items[0]
-	wantQty := 0
-	wantErr := OENotEnough
-	t.Run("Successful verification", func(t *testing.T) {
-		if err := verifyItem(item, wantQty); err != nil {
-			t.Errorf("verification of %#v, %d failed: %s", item, wantQty, err)
-		}
-
-		item = items[1]
-		wantQty = 1
-		if err := verifyItem(item, wantQty); err != nil {
-			t.Errorf("verification of %#v, %d failed: %s", item, wantQty, err)
-		}
-	})
-
-	t.Run("Not enough items", func(t *testing.T) {
-		item := items[0]
-		wantQty = 1
-		helperVerifyItem(item, wantQty, wantErr, t)
-
-	})
-
-	t.Run("Not found", func(t *testing.T) {
-		item = nil
-		wantErr = OENotFound
-		helperVerifyItem(item, wantQty, wantErr, t)
-	})
-}
-
 func TestMarshalRedis(t *testing.T) {
 	var idMarshalled string
 	var itemsMarshalled map[string]int
@@ -158,8 +112,3 @@ func TestMarshalRedis(t *testing.T) {
 		}
 	}
 }
-
-// TODO: Test getItem
-
-// TODO: Test BuildOrder
-// TODO: Test OECantRetrieve

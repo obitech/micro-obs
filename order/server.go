@@ -5,6 +5,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"os/signal"
 	"sync/atomic"
@@ -53,8 +54,8 @@ func NewServer(options ...ServerOptions) (*Server, error) {
 	rc, _ := NewRedisClient("redis://127.0.0.1:6379/0")
 	s := &Server{
 		address:      ":8080",
-		endpoint:     "127.0.0.1:8081",
-		itemService:  "127.0.0.1:9090",
+		endpoint:     "http://127.0.0.1:8081",
+		itemService:  "http://127.0.0.1:9090",
 		redis:        rc,
 		logger:       logger,
 		router:       util.NewRouter(),
@@ -244,7 +245,7 @@ func SetServerEndpoint(address string) ServerOptions {
 // SetItemServiceAddress sets the address to reach the Item service.
 func SetItemServiceAddress(address string) ServerOptions {
 	return func(s *Server) error {
-		if err := util.CheckTCPAddress(address); err != nil {
+		if _, err := url.Parse(address); err != nil {
 			return err
 		}
 		s.itemService = address

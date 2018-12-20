@@ -52,6 +52,12 @@ func (s *Server) createRoutes() {
 			Pattern:     "/orders/{id:-?[0-9]+}",
 			HandlerFunc: s.getOrder(),
 		},
+		util.Route{
+			Name:        "createOrder",
+			Method:      "POST",
+			Pattern:     "/orders/create",
+			HandlerFunc: s.createOrder(),
+		},
 	}
 
 	for _, route := range routes {

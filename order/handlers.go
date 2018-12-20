@@ -141,6 +141,84 @@ func (s *Server) setOrder(update bool) http.HandlerFunc {
 	}
 }
 
+func (s *Server) createOrder() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		span, ctx := ot.StartSpanFromContext(r.Context(), "createOrder")
+		defer span.Finish()
+
+		// Accept payload
+		body, err := ioutil.ReadAll(io.LimitReader(r.Body, 1048576))
+		if err != nil {
+			s.logger.Errorw("unable to read request body",
+				"error", err,
+			)
+			r.Body.Close()
+			s.Respond(ctx, http.StatusInternalServerError, "unable to read payload", 0, nil, w)
+			return
+		}
+		defer r.Body.Close()
+
+		// Parse payload
+		var order *Order
+		if err := json.Unmarshal(body, &order); err != nil {
+			s.logger.Errorw("unable to parse payload",
+				"error", err,
+			)
+			s.Respond(ctx, http.StatusBadRequest, "unable to parse payload", 0, nil, w)
+			return
+		}
+
+		// Check if order contains items
+		if len(order.Items) == 0 {
+			s.Respond(ctx, http.StatusUnprocessableEntity, "order needs items", 0, nil, w)
+			return
+		}
+
+		// Get requested items from item service
+		// TODO: Send & process in bulk
+		for _, orderItem := range order.Items {
+			itemItem, err := s.getItem(ctx, orderItem.ID)
+			if err != nil {
+				s.logger.Errorw("unable to retrieve item from item service",
+					"itemID", orderItem.ID,
+					"error", err,
+				)
+				s.Respond(ctx, http.StatusInternalServerError, "unable to retrieve item from item service", 0, nil, w)
+				return
+			}
+
+			if itemItem.Qty < orderItem.Qty {
+				msg := fmt.Sprintf("not enough units of %s available (%d avail, %d requested)", orderItem.ID, orderItem.Qty, itemItem.Qty)
+				s.Respond(ctx, http.StatusUnprocessableEntity, msg, 0, nil, w)
+				return
+			}
+		}
+
+		// Get OrderID from Redis
+		id, err := s.RedisGetNextOrderID(ctx)
+		if err != nil {
+			s.logger.Errorw("unable to get next order ID",
+				"error", err,
+			)
+			s.Respond(ctx, http.StatusInternalServerError, "unable to create order", 0, nil, w)
+			return
+		}
+		order.ID = id
+
+		// Create order
+		err = s.RedisSetOrder(ctx, order)
+		if err != nil {
+			s.logger.Errorw("unable to create order in redis",
+				"error", err,
+			)
+		}
+
+		// Respond
+		msg := fmt.Sprintf("order %d created", order.ID)
+		s.Respond(ctx, http.StatusCreated, msg, 1, []*Order{order}, w)
+	}
+}
+
 func (s *Server) getOrder() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		span, ctx := ot.StartSpanFromContext(r.Context(), "getOrder")
