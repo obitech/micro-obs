@@ -75,23 +75,30 @@ var (
 		{"GET", "/asdasd", http.StatusNotFound},
 		{"GET", "/metrics", http.StatusOK},
 		{"GET", "/items", http.StatusNotFound},
-		{"POST", "/items", http.StatusUnprocessableEntity},
-		{"PUT", "/items", http.StatusUnprocessableEntity},
+		{"POST", "/items", http.StatusBadRequest},
+		{"PUT", "/items", http.StatusBadRequest},
 		{"DELETE", "/", http.StatusMethodNotAllowed},
 		{"DELETE", "/items", http.StatusMethodNotAllowed},
 	}
 
 	validJSON = []string{
-		`{"name": "orange", "desc": "test", "qty": 1}`,
-		`{"name": "😍", "qty": 42, "desc": "yes"}`,
-		// `[{"name": "😍aa", "qty": 42, "desc": "yes"}]`,
-		// `[{"name": "😍aabasd", "qty": 42, "desc": "yes"}, {"name": "bread", "desc": "love it", "qty": 15}]`,
+
+		`[{"name": "😍aa", "qty": 42, "desc": "yes"}]`,
+		`[{"name": "😍aabasd", "qty": 42, "desc": "yes"}, {"name": "bread", "desc": "love it", "qty": 15}]`,
 	}
 
-	invalidJSON = []string{
-		`test`,
-		`{}`,
-		`{"cat": "dog"}`,
+	invalidJSON = []struct {
+		js   string
+		want int
+	}{
+		{`test`, http.StatusBadRequest},
+		{`{}`, http.StatusBadRequest},
+		{`{"cat": "dog"}`, http.StatusBadRequest},
+		{`[`, http.StatusBadRequest},
+		{`{"name": "orange", "desc": "test", "qty": 1}`, http.StatusBadRequest},
+		{`{"name": "😍", "qty": 42, "desc": "yes"}`, http.StatusBadRequest},
+		{`[{}]`, http.StatusUnprocessableEntity},
+		{`[]`, http.StatusUnprocessableEntity},
 	}
 )
 
@@ -270,36 +277,39 @@ func TestEndpoints(t *testing.T) {
 
 				for _, js := range validJSON {
 					// JSON to Item
-					var item *Item
-					err := json.Unmarshal([]byte(js), &item)
+					var items []*Item
+					err := json.Unmarshal([]byte(js), &items)
 					if err != nil {
 						t.Errorf("unable to unmarshal %+v into item: %s", js, err)
 					}
-					err = item.SetID(context.Background())
-					if err != nil {
-						t.Errorf("unable to set HashID on %+v: %s", item, err)
-					}
 
-					path := fmt.Sprintf("/items/%s", item.ID)
+					for _, item := range items {
+						err = item.SetID(context.Background())
+						if err != nil {
+							t.Errorf("unable to set HashID on %+v: %s", item, err)
+						}
 
-					// Send JSON
-					b := helperSendSimpleRequest(s, method, path, want, t)
-					var verify Response
-					err = json.Unmarshal(b, &verify)
-					if err != nil {
-						t.Errorf("unable to parse response: %s", err)
-					}
+						path := fmt.Sprintf("/items/%s", item.ID)
 
-					// Verify response with item
-					if !reflect.DeepEqual(verify.Data, []*Item{item}) {
-						t.Errorf("%+v != %+v", verify.Data, []*Item{item})
+						// Send JSON
+						b := helperSendSimpleRequest(s, method, path, want, t)
+						var verify Response
+						err = json.Unmarshal(b, &verify)
+						if err != nil {
+							t.Errorf("unable to parse response: %s", err)
+						}
+
+						// Verify response with item
+						if !reflect.DeepEqual(verify.Data, []*Item{item}) {
+							t.Errorf("%+v != %+v", verify.Data, []*Item{item})
+						}
 					}
 				}
 			})
 
 			t.Run("POST existing item", func(t *testing.T) {
 				method = "POST"
-				want := http.StatusOK
+				want := http.StatusUnprocessableEntity
 				path := "/items"
 
 				for _, js := range validJSON {
@@ -309,10 +319,10 @@ func TestEndpoints(t *testing.T) {
 
 			t.Run("POST invalid JSON", func(t *testing.T) {
 				method = "POST"
-				want = http.StatusUnprocessableEntity
+				want = http.StatusBadRequest
 
-				for _, js := range invalidJSON {
-					helperSendJSON(js, s, method, path, want, t)
+				for _, tt := range invalidJSON {
+					helperSendJSON(tt.js, s, method, path, tt.want, t)
 				}
 			})
 
@@ -327,10 +337,6 @@ func TestEndpoints(t *testing.T) {
 				if err != nil {
 					t.Errorf("unable to parse response: %s", err)
 				}
-
-				if len(verify.Data) != len(validJSON) {
-					t.Errorf("%+v != %+v", verify.Data, validJSON)
-				}
 			})
 
 			t.Run("DELETE all items", func(t *testing.T) {
@@ -339,20 +345,21 @@ func TestEndpoints(t *testing.T) {
 
 				for _, js := range validJSON {
 					// JSON to Item
-					var item *Item
-					err := json.Unmarshal([]byte(js), &item)
+					var items []*Item
+					err := json.Unmarshal([]byte(js), &items)
 					if err != nil {
 						t.Errorf("unable to unmarshal %+v into item: %s", js, err)
 					}
-					err = item.SetID(context.Background())
-					if err != nil {
-						t.Errorf("unable to set HashID on %+v: %s", item, err)
+
+					for _, item := range items {
+						err = item.SetID(context.Background())
+						if err != nil {
+							t.Errorf("unable to set HashID on %+v: %s", item, err)
+						}
+
+						path := fmt.Sprintf("/items/%s", item.ID)
+						helperSendSimpleRequest(s, method, path, want, t)
 					}
-
-					path := fmt.Sprintf("/items/%s", item.ID)
-
-					// Send JSON
-					helperSendSimpleRequest(s, method, path, want, t)
 				}
 			})
 		})
@@ -363,7 +370,7 @@ func TestEndpoints(t *testing.T) {
 
 			t.Run("PUT new item", func(t *testing.T) {
 				method = "PUT"
-				want := http.StatusOK
+				want := http.StatusCreated
 
 				for _, js := range validJSON {
 					helperSendJSON(js, s, method, path, want, t)
@@ -372,7 +379,7 @@ func TestEndpoints(t *testing.T) {
 
 			t.Run("PUT existing item", func(t *testing.T) {
 				method = "PUT"
-				want := http.StatusOK
+				want := http.StatusCreated
 
 				for _, js := range validJSON {
 					helperSendJSON(js, s, method, path, want, t)
@@ -385,29 +392,32 @@ func TestEndpoints(t *testing.T) {
 
 				for _, js := range validJSON {
 					// JSON to Item
-					var item *Item
-					err := json.Unmarshal([]byte(js), &item)
+					var items []*Item
+					err := json.Unmarshal([]byte(js), &items)
 					if err != nil {
 						t.Errorf("unable to unmarshal %+v into item: %s", js, err)
 					}
-					err = item.SetID(context.Background())
-					if err != nil {
-						t.Errorf("unable to set HashID on %+v: %s", item, err)
-					}
 
-					path := fmt.Sprintf("/items/%s", item.ID)
+					for _, item := range items {
+						err = item.SetID(context.Background())
+						if err != nil {
+							t.Errorf("unable to set HashID on %+v: %s", item, err)
+						}
 
-					// Send JSON
-					b := helperSendSimpleRequest(s, method, path, want, t)
-					var verify Response
-					err = json.Unmarshal(b, &verify)
-					if err != nil {
-						t.Errorf("unable to parse response: %s", err)
-					}
+						path := fmt.Sprintf("/items/%s", item.ID)
 
-					// Verify response with item
-					if !reflect.DeepEqual(verify.Data, []*Item{item}) {
-						t.Errorf("%+v != %+v", verify.Data, []*Item{item})
+						// Send JSON
+						b := helperSendSimpleRequest(s, method, path, want, t)
+						var verify Response
+						err = json.Unmarshal(b, &verify)
+						if err != nil {
+							t.Errorf("unable to parse response: %s", err)
+						}
+
+						// Verify response with item
+						if !reflect.DeepEqual(verify.Data, []*Item{item}) {
+							t.Errorf("%+v != %+v", verify.Data, []*Item{item})
+						}
 					}
 				}
 			})
@@ -416,8 +426,8 @@ func TestEndpoints(t *testing.T) {
 				method = "PUT"
 				want = http.StatusUnprocessableEntity
 
-				for _, js := range invalidJSON {
-					helperSendJSON(js, s, method, path, want, t)
+				for _, tt := range invalidJSON {
+					helperSendJSON(tt.js, s, method, path, tt.want, t)
 				}
 			})
 
@@ -432,10 +442,6 @@ func TestEndpoints(t *testing.T) {
 				if err != nil {
 					t.Errorf("unable to parse response: %s", err)
 				}
-
-				if len(verify.Data) != len(validJSON) {
-					t.Errorf("%+v != %+v", verify.Data, validJSON)
-				}
 			})
 
 			t.Run("DELETE all items", func(t *testing.T) {
@@ -444,20 +450,21 @@ func TestEndpoints(t *testing.T) {
 
 				for _, js := range validJSON {
 					// JSON to Item
-					var item *Item
-					err := json.Unmarshal([]byte(js), &item)
+					var items []*Item
+					err := json.Unmarshal([]byte(js), &items)
 					if err != nil {
 						t.Errorf("unable to unmarshal %+v into item: %s", js, err)
 					}
-					err = item.SetID(context.Background())
-					if err != nil {
-						t.Errorf("unable to set HashID on %+v: %s", item, err)
+
+					for _, item := range items {
+						err = item.SetID(context.Background())
+						if err != nil {
+							t.Errorf("unable to set HashID on %+v: %s", item, err)
+						}
+
+						path := fmt.Sprintf("/items/%s", item.ID)
+						helperSendSimpleRequest(s, method, path, want, t)
 					}
-
-					path := fmt.Sprintf("/items/%s", item.ID)
-
-					// Send JSON
-					helperSendSimpleRequest(s, method, path, want, t)
 				}
 			})
 		})

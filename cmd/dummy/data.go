@@ -15,5 +15,5 @@ var itemJSON = `[
 		"name": "apple",
 		"desc": "delicious",
 		"qty": 15
-	},
+	}
 ]`

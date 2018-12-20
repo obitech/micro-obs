@@ -67,19 +67,9 @@ func (s *Server) setItem(update bool) http.HandlerFunc {
 		defer span.Finish()
 
 		var (
-			defaultErrMsg string
-			defaultStatus int
-			item          = &Item{}
+			defaultErrMsg = "unable to create items"
+			items         []*Item
 		)
-
-		switch update {
-		case true:
-			defaultErrMsg = "unable to update item"
-			defaultStatus = http.StatusOK
-		case false:
-			defaultErrMsg = "unable to create item"
-			defaultStatus = http.StatusCreated
-		}
 
 		// Accept payload
 		body, err := ioutil.ReadAll(io.LimitReader(r.Body, 1048576))
@@ -94,64 +84,108 @@ func (s *Server) setItem(update bool) http.HandlerFunc {
 		defer r.Body.Close()
 
 		// Parse payload
-		// TODO: handle multiple items
-		if err := json.Unmarshal(body, item); err != nil {
+		if err := json.Unmarshal(body, &items); err != nil {
 			s.logger.Errorw("unable to parse payload",
 				"error", err,
 			)
-			s.Respond(ctx, http.StatusUnprocessableEntity, "unable to parse payload", 0, nil, w)
+			s.Respond(ctx, http.StatusBadRequest, "unable to parse payload", 0, nil, w)
 			return
 		}
 
-		// Catch empty response
-		if item.Name == "" {
-			s.Respond(ctx, http.StatusUnprocessableEntity, "invalid data", 0, nil, w)
-			return
+		if items == nil || len(items) == 0 {
+			s.Respond(ctx, http.StatusUnprocessableEntity, "items can't be empty", 0, nil, w)
 		}
 
-		if err := item.SetID(ctx); err != nil {
-			s.logger.Errorw("unable to set item ID",
-				"error", err,
+		// Verify sent items
+		for _, item := range items {
+			// Catch empty response
+			if item.Name == "" {
+				s.Respond(ctx, http.StatusUnprocessableEntity, "item needs name", 0, nil, w)
+				return
+			}
+
+			if err := item.SetID(ctx); err != nil {
+				s.logger.Errorw("unable to set item ID",
+					"error", err,
+				)
+				s.Respond(ctx, http.StatusInternalServerError, defaultErrMsg, 0, nil, w)
+				return
+			}
+
+			s.logger.Debugw("item struct created",
+				"id", item.ID,
+				"name", item.Name,
+				"desc", item.Desc,
+				"qty", item.Qty,
 			)
-			s.Respond(ctx, http.StatusInternalServerError, defaultErrMsg, 0, nil, w)
-			return
-		}
-		s.logger.Debugw("item struct created",
-			"id", item.ID,
-			"name", item.Name,
-			"desc", item.Desc,
-			"qty", item.Qty,
-		)
 
-		// Check for existence
-		i, err := s.RedisGetItem(ctx, item.ID)
-		if err != nil {
-			s.logger.Errorw("unable to retrieve Item from Redis",
-				"key", item.ID,
-				"error", err,
-			)
-			s.Respond(ctx, http.StatusInternalServerError, defaultErrMsg, 0, nil, w)
-			return
-		}
-		if i != nil {
-			if !update {
-				s.Respond(ctx, http.StatusOK, fmt.Sprintf("item with name %s already exists", item.Name), 0, nil, w)
+			// Check for existence
+			_, err := s.RedisGetItem(ctx, item.ID)
+			if err != nil {
+				s.logger.Errorw("unable to retrieve Item from Redis",
+					"key", item.ID,
+					"error", err,
+				)
+				s.Respond(ctx, http.StatusInternalServerError, defaultErrMsg, 0, nil, w)
 				return
 			}
 		}
 
-		// Create Item in Redis
-		err = s.RedisSetItem(ctx, item)
-		if err != nil {
-			s.logger.Errorw("unable to create Item in redis",
-				"key", item.ID,
-				"error", err,
-			)
-			s.Respond(ctx, http.StatusInternalServerError, defaultErrMsg, 0, nil, w)
+		var itemsCreatedMsg string
+		var itemsCreatedData []*Item
+		var itemsFailedMsg string
+
+		for _, item := range items {
+			// Check for existence
+			i, err := s.RedisGetItem(ctx, item.ID)
+			if err != nil {
+				s.logger.Errorw("unable to retrieve Item from Redis",
+					"key", item.ID,
+					"error", err,
+				)
+				s.Respond(ctx, http.StatusInternalServerError, "unable to create items", 0, nil, w)
+				return
+			}
+			if i != nil {
+				if !update {
+					s.logger.Debugw("item already exists",
+						"key", item.ID,
+					)
+					itemsFailedMsg += fmt.Sprintf("%s already exists, ", item.ID)
+					continue
+				}
+			}
+
+			// Create Item in Redis
+			err = s.RedisSetItem(ctx, item)
+			if err != nil {
+				s.logger.Errorw("unable to create item in redis",
+					"key", item.ID,
+					"error", err,
+				)
+				itemsFailedMsg += fmt.Sprintf("%s, ", item.ID)
+				continue
+			}
+			itemsCreatedMsg += fmt.Sprintf("%s, ", item.ID)
+			itemsCreatedData = append(itemsCreatedData, item)
+		}
+
+		switch {
+		// All failed
+		case len(itemsFailedMsg) != 0 && len(itemsCreatedData) == 0:
+			msg := fmt.Sprintf("unable to create items: %s", itemsFailedMsg)
+			s.Respond(ctx, http.StatusUnprocessableEntity, msg, 0, nil, w)
+			return
+
+		// Some created, some failed
+		case len(itemsFailedMsg) != 0 && len(itemsCreatedData) > 0:
+			msg := fmt.Sprintf("items %s created but some failed: %s", itemsCreatedMsg, itemsFailedMsg)
+			s.Respond(ctx, http.StatusOK, msg, len(itemsCreatedData), itemsCreatedData, w)
 			return
 		}
 
-		s.Respond(ctx, defaultStatus, fmt.Sprintf("item %s created", item.Name), 1, []*Item{item}, w)
+		// All created, none failed
+		s.Respond(ctx, http.StatusCreated, fmt.Sprintf("items %s created", itemsCreatedMsg), len(itemsCreatedData), itemsCreatedData, w)
 	}
 }
 

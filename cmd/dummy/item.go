@@ -54,7 +54,14 @@ func ping(cmd *cobra.Command, args []string) {
 
 func defaultData(cmd *cobra.Command, args []string) {
 	buf := bytes.NewBuffer([]byte(itemJSON))
-	res, err := http.Post(fmt.Sprintf("%s/items", itemAddr), "application/JSON; charset=UTF-8", buf)
+	req, err := http.NewRequest("PUT", fmt.Sprintf("%s/items", itemAddr), buf)
+	if err != nil {
+		errExit(err)
+	}
+	req.Header.Add("Content-Type", "application/JSON; charset=UTF-8")
+
+	c := &http.Client{}
+	res, err := c.Do(req)
 	errExit(err)
 
 	b, err := ioutil.ReadAll(res.Body)
@@ -64,7 +71,7 @@ func defaultData(cmd *cobra.Command, args []string) {
 	switch res.StatusCode {
 	case http.StatusOK:
 		fallthrough
-	case http.StatusAccepted:
+	case http.StatusCreated:
 		fmt.Printf("%s", string(b))
 	default:
 		fmt.Printf("Unexpected status code %d: %s", res.StatusCode, b)
