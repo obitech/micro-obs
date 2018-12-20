@@ -9,8 +9,8 @@ import (
 
 // Default values to be used to initialize the order service
 var (
-	address  = ":9090"
-	endpoint = "http://127.0.0.1:9091"
+	address  = ":8090"
+	endpoint = "127.0.0.1:9091"
 	logLevel = "info"
 	redis    = "redis://127.0.0.1:6380/0"
 	item     = "http://127.0.0.1:8080"

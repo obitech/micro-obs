@@ -29,6 +29,14 @@ type Item struct {
 	Qty int    `json:"qty"`
 }
 
+type notFoundError struct {
+	err string
+}
+
+func (e notFoundError) Error() string {
+	return e.err
+}
+
 func (o *Order) String() string {
 	return fmt.Sprintf("ID:%d Items:%+v", o.ID, o.Items)
 }
@@ -144,6 +152,10 @@ func (s *Server) getItem(ctx context.Context, itemID string) (*Item, error) {
 	if err != nil {
 		return nil, errors.Wrapf(err, "unable to connect to item service")
 	}
+
+	if resp.StatusCode == http.StatusNotFound {
+		return nil, notFoundError{fmt.Sprintf("item id %s not found", itemID)}
+	}
 	if resp.StatusCode != http.StatusOK {
 		return nil, errors.Errorf("invalid status code from item service: %d", resp.StatusCode)
 	}
@@ -159,7 +171,7 @@ func (s *Server) getItem(ctx context.Context, itemID string) (*Item, error) {
 	var r item.Response
 	err = json.Unmarshal(b, &r)
 	if err != nil {
-		return nil, errors.Wrapf(err, "unalbe to parse respone from item service")
+		return nil, errors.Wrapf(err, "unable to parse respone from item service")
 	}
 
 	if r.Count == 0 || r.Data == nil {
@@ -175,5 +187,5 @@ func (s *Server) getItem(ctx context.Context, itemID string) (*Item, error) {
 			}, nil
 		}
 	}
-	return nil, errors.New("no items left to yield")
+	return nil, errors.New("no items to yield")
 }

@@ -36,7 +36,7 @@ services:
     
   item:
     container_name: micro-obs-item
-    image: obitech/micro-obs:order
+    image: obitech/micro-obs:master
     command: item -r redis://redis-item:6379/0
     ports:
       - "8080:8080"
@@ -57,10 +57,10 @@ services:
 
   order:
     container_name: micro-obs-order
-    image: obitech/micro-obs:order
-    command: order -r redis://redis-order:6380/0
+    image: obitech/micro-obs:master
+    command: order -r redis://redis-order:6380/0 -i http://item:8080
     ports:
-      - "9090:9090"
+      - "8090:8090"
     environment:
       - "JAEGER_AGENT_HOST=jaeger"
       - "JAEGER_AGENT_PORT=6831"

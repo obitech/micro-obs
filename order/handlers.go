@@ -179,6 +179,11 @@ func (s *Server) createOrder() http.HandlerFunc {
 		for _, orderItem := range order.Items {
 			itemItem, err := s.getItem(ctx, orderItem.ID)
 			if err != nil {
+				if err, ok := err.(notFoundError); ok {
+					s.Respond(ctx, http.StatusNotFound, err.Error(), 0, nil, w)
+					return
+				}
+
 				s.logger.Errorw("unable to retrieve item from item service",
 					"itemID", orderItem.ID,
 					"error", err,

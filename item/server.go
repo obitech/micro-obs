@@ -1,8 +1,8 @@
 package item
 
 import (
-	"fmt"
 	"context"
+	"fmt"
 	"io"
 	"net"
 	"net/http"
@@ -15,7 +15,7 @@ import (
 	"github.com/go-redis/redis"
 	"github.com/gorilla/mux"
 	"github.com/obitech/micro-obs/util"
-	"github.com/opentracing/opentracing-go"
+	ot "github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -57,6 +57,7 @@ func NewServer(options ...ServerOptions) (*Server, error) {
 		router:       util.NewRouter(),
 		promRegistry: prometheus.NewRegistry(),
 	}
+	s.promRegistry.MustRegister(rm.InFlightGauge, rm.Counter, rm.Duration, rm.ResponseSize)
 
 	// Applying custom settings
 	for _, fn := range options {
@@ -114,12 +115,17 @@ func (s *Server) Run() error {
 	}
 
 	// Creating tracer
-	tracer, closer, err := util.InitTracer("item", s.logger)
+	var tracer ot.Tracer
+	var closer io.Closer
+	tracer, closer, err = util.InitTracer("item", s.logger)
 	if err != nil {
-		return errors.Wrapf(err, "unable to create tracer")
+		s.logger.Warnw("unable to initialize tracer",
+			"error", err,
+		)
+	} else {
+		defer closer.Close()
+		ot.SetGlobalTracer(tracer)
 	}
-	defer closer.Close()
-	opentracing.SetGlobalTracer(tracer)
 
 	// Listening
 	go func() {
@@ -162,7 +168,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) internalError(ctx context.Context, w http.ResponseWriter) {
 	status := http.StatusInternalServerError
-	parent := opentracing.SpanFromContext(ctx)
+	parent := ot.SpanFromContext(ctx)
 	if parent != nil {
 		parent.SetTag("status", status)
 	}
@@ -178,7 +184,7 @@ func (s *Server) internalError(ctx context.Context, w http.ResponseWriter) {
 
 // Respond sends a JSON-encoded response.
 func (s *Server) Respond(ctx context.Context, status int, m string, c int, data []*Item, w http.ResponseWriter) {
-	span, ctx := opentracing.StartSpanFromContext(ctx, "Respond")
+	span, ctx := ot.StartSpanFromContext(ctx, "Respond")
 	defer span.Finish()
 	span.SetTag("status", status)
 
@@ -201,7 +207,7 @@ func (s *Server) Respond(ctx context.Context, status int, m string, c int, data 
 
 	// Tracing information
 	for k, v := range w.Header() {
-		span.SetTag(fmt.Sprintf("header.%s",k),v)
+		span.SetTag(fmt.Sprintf("header.%s", k), v)
 	}
 	span.LogKV(
 		"message", m,

@@ -13,8 +13,6 @@ var rm = util.NewRequestMetricHistogram(
 // Routes defines all HTTP routes, hanging off the main Server struct.
 // Like that, all routes have access to the Server's dependencies.
 func (s *Server) createRoutes() {
-	s.promRegistry.MustRegister(rm.InFlightGauge, rm.Counter, rm.Duration, rm.ResponseSize)
-
 	var routes = util.Routes{
 		util.Route{
 			Name:        "pong",

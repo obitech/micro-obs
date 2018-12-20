@@ -7,9 +7,13 @@ scrape_configs:
   static_configs:
   - targets: ['item:8080']
 
+- job_name: 'order'
+  static_configs:
+  - targets: ['order:8090']
+
 - job_name: 'jaeger'
   static_configs:
-  - targets: [jaeger:16686']
+  - targets: ['jaeger:16686']
 
 - job_name: 'prometheus'
   static_configs:
