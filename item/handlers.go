@@ -11,6 +11,13 @@ import (
 	ot "github.com/opentracing/opentracing-go"
 )
 
+// notFound is a 404 Message according to the Response type
+func (s *Server) notFound(w http.ResponseWriter, r *http.Request) {
+	span, ctx := ot.StartSpanFromContext(r.Context(), "notFound")
+	defer span.Finish()
+	s.Respond(ctx, http.StatusNotFound, "resource not found", 0, nil, w)
+}
+
 // pong sends a simple JSON response.
 func (s *Server) pong() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {

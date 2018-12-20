@@ -67,3 +67,12 @@ services:
     depends_on:
       - redis-order
     restart: always
+  
+  redis-exporter:
+    container_name: redis-exporter
+    image: oliver006/redis_exporter:v0.24.0
+    command: --redis.addr=redis://redis-order:6380/0,redis://redis-item:6379/0
+    depends_on:
+      - redis-item
+      - redis-order
+    restart: always

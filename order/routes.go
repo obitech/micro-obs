@@ -2,13 +2,21 @@ package order
 
 import (
 	"github.com/obitech/micro-obs/util"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 var rm = util.NewRequestMetricHistogram(
-	[]float64{.01, .05, .1, .25, .5, 1, 5, 10},
+	append([]float64{.001, .003}, prometheus.DefBuckets...),
 	[]float64{1, 5, 10, 50, 100},
 )
+
+func init() {
+	prometheus.Register(rm.InFlightGauge)
+	prometheus.Register(rm.Counter)
+	prometheus.Register(rm.Duration)
+	prometheus.Register(rm.ResponseSize)
+}
 
 // Routes defines all HTTP routes, hanging off the main Server struct.
 // Like that, all routes have access to the Server's dependencies.

@@ -17,7 +17,6 @@ import (
 	"github.com/obitech/micro-obs/util"
 	ot "github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
-	"github.com/prometheus/client_golang/prometheus"
 )
 
 const (
@@ -26,14 +25,13 @@ const (
 
 // Server is a wrapper for a HTTP server, with dependencies attached.
 type Server struct {
-	address      string
-	endpoint     string
-	redis        *redis.Client
-	redisOps     uint64
-	server       *http.Server
-	router       *mux.Router
-	logger       *util.Logger
-	promRegistry *prometheus.Registry
+	address  string
+	endpoint string
+	redis    *redis.Client
+	redisOps uint64
+	server   *http.Server
+	router   *mux.Router
+	logger   *util.Logger
 }
 
 // ServerOptions sets options when creating a new server.
@@ -50,14 +48,12 @@ func NewServer(options ...ServerOptions) (*Server, error) {
 	// Sane defaults
 	rc, _ := NewRedisClient("redis://127.0.0.1:6379/0")
 	s := &Server{
-		address:      ":8080",
-		endpoint:     "127.0.0.1:8081",
-		redis:        rc,
-		logger:       logger,
-		router:       util.NewRouter(),
-		promRegistry: prometheus.NewRegistry(),
+		address:  ":8080",
+		endpoint: "127.0.0.1:8081",
+		redis:    rc,
+		logger:   logger,
+		router:   util.NewRouter(),
 	}
-	s.promRegistry.MustRegister(rm.InFlightGauge, rm.Counter, rm.Duration, rm.ResponseSize)
 
 	// Applying custom settings
 	for _, fn := range options {
@@ -91,6 +87,7 @@ func NewServer(options ...ServerOptions) (*Server, error) {
 
 	// Setting routes
 	s.createRoutes()
+	s.router.NotFoundHandler = http.HandlerFunc(s.notFound)
 
 	return s, nil
 }

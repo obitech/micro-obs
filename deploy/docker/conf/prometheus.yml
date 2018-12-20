@@ -11,6 +11,10 @@ scrape_configs:
   static_configs:
   - targets: ['order:8090']
 
+- job_name: 'redis_exporter'
+  static_configs:
+  - targets: ['redis-exporter:9121']
+
 - job_name: 'jaeger'
   static_configs:
   - targets: ['jaeger:16686']
