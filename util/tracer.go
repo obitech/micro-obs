@@ -1,10 +1,12 @@
 package util
 
 import (
+	"context"
 	"io"
 	"net/http"
 
 	ot "github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go/ext"
 	config "github.com/uber/jaeger-client-go/config"
 	"github.com/uber/jaeger-lib/metrics/prometheus"
 )
@@ -34,10 +36,21 @@ func InitTracer(serviceName string, logger *Logger) (ot.Tracer, io.Closer, error
 // TracerMiddleware adds a Span to the request Context ready for other handlers to use it.
 func TracerMiddleware(inner http.Handler, route Route) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var ctx context.Context
+		var span ot.Span
 		tracer := ot.GlobalTracer()
-		span := tracer.StartSpan("request")
-		ctx := ot.ContextWithSpan(r.Context(), span)
-		defer span.Finish()
+
+		// If possible, extract span context from headers
+		spanCtx, _ := tracer.Extract(ot.HTTPHeaders, ot.HTTPHeadersCarrier(r.Header))
+		if spanCtx == nil {
+			span = tracer.StartSpan("request")
+			defer span.Finish()
+			ctx = ot.ContextWithSpan(r.Context(), span)
+		} else {
+			span = tracer.StartSpan("request", ext.RPCServerOption(spanCtx))
+			defer span.Finish()
+			ctx = ot.ContextWithSpan(r.Context(), span)
+		}
 
 		span.SetTag("method", r.Method)
 		span.SetTag("url", r.URL.Path)

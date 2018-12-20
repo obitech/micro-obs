@@ -203,6 +203,7 @@ func (s *Server) Respond(ctx context.Context, status int, m string, c int, data 
 	span.LogKV(
 		"message", m,
 		"count", c,
+		"header", w.Header(),
 	)
 }
 
