@@ -19,6 +19,7 @@ func runServer(cmd *cobra.Command, args []string) {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(2)
 	}
+	s.InitPromReg()
 
 	if err := s.Run(); err != nil {
 		fmt.Fprintln(os.Stderr, err)

@@ -63,17 +63,17 @@ func orderDefaultData(cmd *cobra.Command, args []string) {
 			errExit(err)
 		}
 		req.Header.Add("Content-Type", "application/JSON; charset=UTF-8")
-	
+
 		fmt.Printf("%s %s\n%s\n", method, url, js)
-	
+
 		c := &http.Client{}
 		res, err := c.Do(req)
 		errExit(err)
-	
+
 		b, err := ioutil.ReadAll(res.Body)
 		errExit(err)
 		defer res.Body.Close()
-	
+
 		switch res.StatusCode {
 		case http.StatusOK:
 			fallthrough

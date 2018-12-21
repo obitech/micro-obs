@@ -19,7 +19,7 @@ var itemJSON = `[
 ]`
 
 var orderJSON = []string{
-`{
+	`{
 	"items": [
 		{
 			"id": "BxYs9DiGaIMXuakIxX",
@@ -31,7 +31,7 @@ var orderJSON = []string{
 		}
 	]
 }`,
-`{
+	`{
 	"items": [
 		{
 			"id": "BxYs9DiGaIMXuakIxX",
@@ -47,7 +47,7 @@ var orderJSON = []string{
 		}
 	]
 }`,
-`{
+	`{
 	"items": [
 		{
 			"id": "JAQU27CQrTkQCNr",

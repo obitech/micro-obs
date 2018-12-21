@@ -17,6 +17,7 @@ import (
 	"github.com/obitech/micro-obs/util"
 	ot "github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 const (
@@ -32,6 +33,7 @@ type Server struct {
 	server   *http.Server
 	router   *mux.Router
 	logger   *util.Logger
+	promReg  *prometheus.Registry
 }
 
 // ServerOptions sets options when creating a new server.
@@ -53,6 +55,7 @@ func NewServer(options ...ServerOptions) (*Server, error) {
 		redis:    rc,
 		logger:   logger,
 		router:   util.NewRouter(),
+		promReg:  prometheus.NewRegistry(),
 	}
 
 	// Applying custom settings
@@ -90,6 +93,15 @@ func NewServer(options ...ServerOptions) (*Server, error) {
 	s.router.NotFoundHandler = http.HandlerFunc(s.notFound)
 
 	return s, nil
+}
+
+// InitPromReg initializes a custom Prometheus registry with Collectors.
+func (s *Server) InitPromReg() {
+	s.promReg.MustRegister(
+		prometheus.NewGoCollector(),
+		prometheus.NewProcessCollector(prometheus.ProcessCollectorOpts{}),
+		rm.InFlightGauge, rm.Counter, rm.Duration, rm.ResponseSize,
+	)
 }
 
 // Run starts a Server and shuts it down properly on a SIGINT and SIGTERM.

@@ -18,6 +18,7 @@ import (
 	"github.com/obitech/micro-obs/util"
 	ot "github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 const (
@@ -36,6 +37,7 @@ type Server struct {
 	server      *http.Server
 	router      *mux.Router
 	logger      *util.Logger
+	promReg     *prometheus.Registry
 }
 
 // ServerOptions sets options when creating a new server.
@@ -50,14 +52,15 @@ func NewServer(options ...ServerOptions) (*Server, error) {
 	}
 
 	// Sane defaults
-	rc, _ := NewRedisClient("redis://127.0.0.1:6379/0")
+	rc, _ := NewRedisClient("redis://127.0.0.1:6380/0")
 	s := &Server{
-		address:     ":8080",
-		endpoint:    "http://127.0.0.1:8081",
-		itemService: "http://127.0.0.1:9090",
+		address:     ":8090",
+		endpoint:    "http://127.0.0.1:8091",
+		itemService: "http://127.0.0.1:8080",
 		redis:       rc,
 		logger:      logger,
 		router:      util.NewRouter(),
+		promReg:     prometheus.NewRegistry(),
 	}
 
 	// Applying custom settings
@@ -95,6 +98,15 @@ func NewServer(options ...ServerOptions) (*Server, error) {
 	s.router.NotFoundHandler = http.HandlerFunc(s.notFound)
 
 	return s, nil
+}
+
+// InitPromReg initializes a custom Prometheus registry with Collectors.
+func (s *Server) InitPromReg() {
+	s.promReg.MustRegister(
+		prometheus.NewGoCollector(),
+		prometheus.NewProcessCollector(prometheus.ProcessCollectorOpts{}),
+		rm.InFlightGauge, rm.Counter, rm.Duration, rm.ResponseSize,
+	)
 }
 
 // Run starts a Server and shuts it down properly on a SIGINT and SIGTERM.

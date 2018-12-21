@@ -8,13 +8,13 @@ import (
 )
 
 var (
-	rootCmd   = &cobra.Command{
+	rootCmd = &cobra.Command{
 		Use:   "dummy",
 		Short: "populate item or order service with dummy data",
 		Long:  "will contact either the item or order service via HTTP to populate data in the underlying datastores",
 	}
 
-	itemAddr = "http://localhost:8080"
+	itemAddr  = "http://localhost:8080"
 	orderAddr = "http://localhost:8090"
 )
 
