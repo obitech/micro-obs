@@ -17,8 +17,6 @@ var (
 )
 
 func init() {
-	rootCmd.Flags().StringVarP(&orderAddr, "order-address", "o", orderAddr, "address of the order service")
-
 	rootCmd.AddCommand(itemCmd)
 }
 

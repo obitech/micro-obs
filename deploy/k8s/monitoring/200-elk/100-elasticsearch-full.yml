@@ -1,0 +1,79 @@
+# ------------------- ElasticSearch Service ------------------- #
+kind: Service
+apiVersion: v1
+metadata:
+  name: elasticsearch
+  namespace: monitoring
+  labels:
+    app: elasticsearch
+    prom-job: elk-elasticsearch
+spec:
+  selector:
+    app: elasticsearch
+  ports:
+  - name: es
+    port: 9200
+  - name: exporter
+    port: 9108
+---
+
+# ------------------- ElasticSearch Deployment ------------------- #
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: elasticsearch
+  namespace: monitoring
+  labels:
+    app: elasticsearch
+spec:
+  selector:
+    matchLabels:
+      app: elasticsearch
+  template:
+    metadata:
+      labels:
+        app: elasticsearch
+    spec:
+      containers:
+      - name: elasticsearch
+        image: docker.elastic.co/elasticsearch/elasticsearch:6.4.0
+        env:
+        - name: xpack.security.enabled
+          value: "false"
+        - name: xpack.watcher.enabled
+          value: "false"
+        - name: xpack.graph.enabled
+          value: "false"
+        - name: xpack.monitoring.enabled
+          value: "false"
+        ports:
+        - name: es
+          containerPort: 9200
+      - name: elasticsearch-exporter
+        image: justwatch/elasticsearch_exporter:1.0.4rc1
+        resources:
+          requests:
+            cpu: 100m
+            memory: 100Mi
+        ports:
+        - name: exporter
+          containerPort: 9108
+        command:
+          - "elasticsearch_exporter"
+          - "-es.uri=localhost:9200"
+---
+
+# ------------------- ElasticSearch ServiceMonitor ------------------- #
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: elasticsearch
+  namespace: monitoring
+spec:
+  selector:
+    matchLabels:
+      app: elasticsearch
+      prom-job: elk-elasticsearch
+  jobLabel: prom-job
+  endpoints:
+  - port: exporter

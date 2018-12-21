@@ -1,0 +1,168 @@
+# ------------------- Node Exporter Service Account ------------------- #
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: node-exporter
+  namespace: monitoring
+---
+
+# ------------------- Node Exporter ClusterRole ------------------- #
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: node-exporter
+rules:
+- apiGroups:
+  - authentication.k8s.io
+  resources:
+  - tokenreviews
+  verbs:
+  - create
+- apiGroups:
+  - authorization.k8s.io
+  resources:
+  - subjectaccessreviews
+  verbs:
+  - create
+---
+
+# ------------------- Node Exporter ClusterRoleBinding ------------------- #
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: node-exporter
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: node-exporter
+subjects:
+- kind: ServiceAccount
+  name: node-exporter
+  namespace: monitoring
+---
+
+# ------------------- Node Exporter Service ------------------- #
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: node-exporter
+  name: node-exporter
+  namespace: monitoring
+spec:
+  clusterIP: None
+  ports:
+  - name: https
+    port: 9100
+    targetPort: https
+  selector:
+    app: node-exporter
+---
+
+# ------------------- Node Exporter DaemonSet ------------------- #
+apiVersion: apps/v1beta2
+kind: DaemonSet
+metadata:
+  labels:
+    app: node-exporter
+  name: node-exporter
+  namespace: monitoring
+spec:
+  selector:
+    matchLabels:
+      app: node-exporter
+  template:
+    metadata:
+      labels:
+        app: node-exporter
+    spec:
+      containers:
+      - args:
+          - --web.listen-address
+          - 127.0.0.1:9101
+          - --path.procfs
+          - /host/proc
+          - --path.sysfs
+          - /host/sys
+          - --collector.filesystem.ignored-mount-points
+          - '"^/(sys|proc|dev|host|etc)($|/)"'
+        name: node-exporter
+        volumeMounts:
+          - name: dev
+            mountPath: /host/dev
+          - name: proc
+            mountPath: /host/proc
+          - name: sys
+            mountPath: /host/sys
+          - name: rootfs
+            mountPath: /rootfs
+        image: quay.io/prometheus/node-exporter:v0.16.0
+        resources:
+          limits:
+            cpu: 102m
+            memory: 180Mi
+          requests:
+            cpu: 102m
+            memory: 180Mi
+      - args:
+        - --secure-listen-address=:9100
+        - --upstream=http://127.0.0.1:9101/
+        image: quay.io/coreos/kube-rbac-proxy:v0.3.1
+        name: kube-rbac-proxy
+        ports:
+        - containerPort: 9100
+          hostPort: 9100
+          name: https
+        resources:
+          limits:
+            cpu: 20m
+            memory: 40Mi
+          requests:
+            cpu: 10m
+            memory: 20Mi
+      hostNetwork: true
+      hostPID: true
+      nodeSelector:
+        beta.kubernetes.io/os: linux
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+      serviceAccountName: node-exporter
+      tolerations:
+      - effect: NoSchedule
+        key: node-role.kubernetes.io/master
+      volumes:
+        - name: proc
+          hostPath:
+            path: /proc
+        - name: dev
+          hostPath:
+            path: /dev
+        - name: sys
+          hostPath:
+            path: /sys
+        - name: rootfs
+          hostPath:
+            path: /
+---
+
+# ------------------- Node Exporter Service Monitor ------------------- #
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  labels:
+    app: node-exporter
+  name: node-exporter
+  namespace: monitoring
+spec:
+  endpoints:
+  - bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
+    interval: 30s
+    port: https
+    scheme: https
+    tlsConfig:
+      insecureSkipVerify: true
+  jobLabel: app
+  selector:
+    matchLabels:
+      app: node-exporter

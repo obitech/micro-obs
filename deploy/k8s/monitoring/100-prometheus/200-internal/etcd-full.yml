@@ -1,0 +1,39 @@
+# ------------------- etcd Service ------------------- #
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: kube-system
+  name: etcd-prometheus-discovery
+  labels:
+    component: etcd
+    jobname: kube-etcd
+spec:
+  selector:
+    component: etcd
+  type: ClusterIP
+  ports:
+  - name: http-metrics
+    port: 10255
+    targetPort: 10255
+    protocol: TCP
+---
+
+# ------------------- etcd Service Monitor ------------------- #
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  labels:
+    component: etcd
+  name: kube-etcd
+  namespace: monitoring
+spec:
+  endpoints:
+  - interval: 30s
+    port: http-metrics
+  jobLabel: jobname
+  namespaceSelector:
+    matchNames:
+    - kube-system
+  selector:
+    matchLabels:
+      component: etcd

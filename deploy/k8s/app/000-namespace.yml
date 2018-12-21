@@ -1,0 +1,5 @@
+# -------------------micro-obs namespace ------------------- #
+apiVersion: v1
+kind: Namespace
+metadata:
+  name:  micro-obs

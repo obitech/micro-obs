@@ -1,0 +1,113 @@
+# ------------------- Logstash Pipeline ConfigMap ------------------- #
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: logstash-pipeline
+  namespace: monitoring
+  labels:
+    app: logstash
+data:
+  logstash.conf: |
+    input {
+      beats {
+        port => 5000
+      }
+    }
+
+    filter {
+      mutate {
+        rename => ["log", "message"]
+      }
+
+      date {
+        match => ["time", "ISO8601"]
+        remove_field => ["time"]
+      }
+
+      grok {
+        match => { "source" => "/var/log/containers/%{DATA:pod_name}_%{DATA:namespace}_%{GREEDYDATA:container_name}-%{DATA:container_id}.log" }
+        remove_field => ["source"]
+      }
+    }
+
+    output {
+      elasticsearch {
+        hosts => "${ES_HOST}"
+      }
+    }
+---
+
+# ------------------- Logstash Config ConfigMap ------------------- #
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: logstash-config
+  namespace: monitoring
+  labels:
+    app: logstash
+data:
+  logstash.yml: |
+    http.host: "0.0.0.0"
+    xpack.monitoring.enabled: false
+---
+
+# ------------------- Logstash Service ------------------- #
+kind: Service
+apiVersion: v1
+metadata:
+  name: logstash
+  namespace: monitoring
+  labels:
+    app: logstash
+spec:
+  selector:
+    app: logstash
+  ports:
+  - name: http
+    port: 5000
+    targetPort: 5000
+---
+
+# ------------------- Logstash Deployment ------------------- #
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: logstash
+  namespace: monitoring
+  labels:
+    app: logstash
+spec:
+  selector:
+    matchLabels:
+      app: logstash
+  template:
+    metadata:
+      name: logstash
+      labels:
+        app: logstash
+    spec:
+      containers:
+      - name: logstash
+        image: docker.elastic.co/logstash/logstash:6.4.2
+        env:
+        - name: ES_HOST
+          value: elasticsearch.monitoring.svc.cluster.local:9200
+        securityContext:
+          runAsUser: 0
+        ports:
+        - name: http
+          containerPort: 5000
+        volumeMounts:
+          - name: pipeline
+            mountPath: /usr/share/logstash/pipeline
+          - name: config
+            mountPath: /usr/share/logstash/config/logstash.yml
+            subPath: logstash.yml
+      volumes:
+      - name: pipeline
+        configMap:
+          name: logstash-pipeline
+      - name: config
+        configMap:
+          name: logstash-config
+

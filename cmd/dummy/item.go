@@ -37,6 +37,7 @@ func init() {
 	itemCmd.AddCommand(defaultCmd)
 
 	pingCmd.Flags().StringVarP(&itemAddr, "addr", "a", itemAddr, "address of the of item service")
+	defaultCmd.Flags().StringVarP(&itemAddr, "addr", "a", itemAddr, "address of the of item service")
 }
 
 func ping(cmd *cobra.Command, args []string) {

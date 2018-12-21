@@ -1,0 +1,177 @@
+#
+# Copyright 2017-2018 The Jaeger Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
+# in compliance with the License. You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software distributed under the License
+# is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+# or implied. See the License for the specific language governing permissions and limitations under
+# the License.
+#
+# See: https://github.com/jaegertracing/jaeger-kubernetes
+
+# ------------------- Jaeger all-in-one Deployment ------------------- #
+apiVersion: v1
+kind: List
+items:
+- apiVersion: extensions/v1beta1
+  kind: Deployment
+  metadata:
+    name: jaeger-deployment
+    namespace: monitoring
+    labels:
+      app: jaeger
+      jaeger-infra: jaeger-deployment
+  spec:
+    replicas: 1
+    strategy:
+      type: Recreate
+    template:
+      metadata:
+        labels:
+          app: jaeger
+          jaeger-infra: jaeger-pod
+      spec:
+          containers:
+          -   env:
+              - name: COLLECTOR_ZIPKIN_HTTP_PORT
+                value: "9411"
+              image: jaegertracing/all-in-one
+              name: jaeger
+              ports:
+                - containerPort: 5775
+                  protocol: UDP
+                  name: agent-zipkint
+                - containerPort: 6831
+                  protocol: UDP
+                  name: agent-compact
+                - containerPort: 6832
+                  protocol: UDP
+                  name: agent-binary
+                - containerPort: 5778
+                  protocol: TCP
+                  name: aget-configs
+                - containerPort: 16686
+                  protocol: TCP
+                  name: query-http
+                - containerPort: 9411
+                  protocol: TCP
+                  name: collector-z
+              readinessProbe:
+                httpGet:
+                  path: "/"
+                  port: 14269
+                initialDelaySeconds: 5
+
+# ------------------- Jaeger Query Service ------------------- #
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: jaeger-query
+    namespace: monitoring
+    labels:
+      app: jaeger
+      jaeger-infra: query-service
+  spec:
+    type: NodePort
+    ports:
+      - name: query-http
+        nodePort: 30686
+        port: 16686
+        protocol: TCP
+        targetPort: query-http
+    selector:
+      jaeger-infra: jaeger-pod
+
+# ------------------- Jaeger Query ServiceMonitor ------------------- #
+- apiVersion: monitoring.coreos.com/v1
+  kind: ServiceMonitor
+  metadata:
+    name: jaeger-query
+    namespace: monitoring
+  spec:
+    selector:
+      matchLabels:
+        jaeger-infra: query-service
+    endpoints:
+    - port: query-http
+
+# ------------------- Jaeger Collector Service ------------------- #
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: jaeger-collector
+    namespace: monitoring
+    labels:
+      app: jaeger
+      jaeger-infra: collector-service
+  spec:
+    type: ClusterIP 
+    ports:
+    - name: collector-tchannel
+      port: 14267
+      protocol: TCP
+      targetPort: 14267
+    - name: collector-http
+      port: 14268
+      protocol: TCP
+      targetPort: 14268
+    - name: collector-z
+      port: 9411
+      protocol: TCP
+      targetPort: collector-z
+    selector:
+      jaeger-infra: jaeger-pod
+
+# ------------------- Jaeger Agent Service ------------------- #
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: jaeger-agent
+    namespace: monitoring
+    labels:
+      app: jaeger
+      jaeger-infra: agent-service
+  spec:
+    clusterIP: None
+    ports:
+    - name: agent-zipkint
+      port: 5775
+      protocol: UDP
+      targetPort: agent-zipkint
+    - name: agent-compact
+      port: 6831
+      protocol: UDP
+      targetPort: agent-compact
+    - name: agent-binary
+      port: 6832
+      protocol: UDP
+      targetPort: agent-binary
+    - name: agent-configs
+      port: 5778
+      protocol: TCP
+      targetPort: agent-configs
+    selector:
+      jaeger-infra: jaeger-pod
+
+# ------------------- Jaeger Zipkin Service ------------------- #
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: jaeger-zipkin
+    namespace: monitoring
+    labels:
+      app: jaeger
+      jaeger-infra: zipkin-service
+  spec:
+    clusterIP: None
+    ports:
+    - name: collector-z
+      port: 9411
+      protocol: TCP
+      targetPort: collector-z
+    selector:
+      jaeger-infra: jaeger-pod

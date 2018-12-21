@@ -1,0 +1,43 @@
+# # ------------------- Kube Controller Manager Service ------------------- #
+# apiVersion: v1
+# kind: Service
+# metadata:
+#   namespace: kube-system
+#   name: kube-controller-manager-prometheus-discovery
+#   labels:
+#     component: kube-controller-manager
+# spec:
+#   selector:
+#     component: kube-controller-manager
+#   type: ClusterIP
+#   ports:
+#   - name: http-metrics
+#     port: 10252
+#     targetPort: 10252
+#     protocol: TCP
+# ---
+
+# # ------------------- Kube Controller Service Monitor ------------------- #
+# apiVersion: monitoring.coreos.com/v1
+# kind: ServiceMonitor
+# metadata:
+#   labels:
+#     k8s-app: kube-controller-manager
+#   name: kube-controller-manager
+#   namespace: monitoring
+# spec:
+#   endpoints:
+#   - interval: 30s
+#     metricRelabelings:
+#     - action: drop
+#       regex: etcd_(debugging|disk|request|server).*
+#       sourceLabels:
+#       - __name__
+#     port: http-metrics
+#   jobLabel: component
+#   namespaceSelector:
+#     matchNames:
+#     - kube-system
+#   selector:
+#     matchLabels:
+#      component: kube-controller-manager

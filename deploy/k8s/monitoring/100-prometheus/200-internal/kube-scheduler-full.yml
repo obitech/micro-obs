@@ -1,0 +1,38 @@
+# # ------------------- Kube Scheduler Service ------------------- #
+# apiVersion: v1
+# kind: Service
+# metadata:
+#   namespace: kube-system
+#   name: kube-scheduler-prometheus-discovery
+#   labels:
+#     component: kube-scheduler
+# spec:
+#   selector:
+#     component: kube-scheduler
+#   type: ClusterIP
+#   ports:
+#   - name: http-metrics
+#     port: 10251
+#     targetPort: 10251
+#     protocol: TCP
+# ---
+
+# # ------------------- Kube Scheduler Service Monitor ------------------- #
+# apiVersion: monitoring.coreos.com/v1
+# kind: ServiceMonitor
+# metadata:
+#   labels:
+#     component: kube-scheduler
+#   name: kube-scheduler
+#   namespace: monitoring
+# spec:
+#   endpoints:
+#   - interval: 30s
+#     port: http-metrics
+#   jobLabel: component
+#   namespaceSelector:
+#     matchNames:
+#     - kube-system
+#   selector:
+#     matchLabels:
+#       component: kube-scheduler

@@ -1,0 +1,160 @@
+# ------------------- Filebeat Config ConfigMap ------------------- #
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: filebeat-config
+  namespace: monitoring
+  labels:
+    app: filebeat
+data:
+  filebeat.yml: |
+    # Stores the state and location info Filebeat uses to track where it was last reading
+    # filebeat.registry_file: /var/log/containers/filebeat_registry
+
+    # Specify inputs to read logs from
+    filebeat.inputs:
+    - type: log
+      enabled: true
+      paths:
+        - /var/log/containers/*.log
+      symlinks: true
+
+      # Skip Filebeat & kube logs
+      # exclude_files: ['filebeat.*log', 'kube.*log']
+
+      # Set key to 'log'
+      json.message_key: log
+      
+      # Copy keys to top level of document
+      json.keys_under_root: true
+
+      # Add error key if unmarshaling fails
+      json.add_error_key: true
+
+      # Match multiple lines starting with whitespace
+      multiline.pattern: ^\s
+
+      # Append lines to pattern
+      multiline.match: after
+    
+    http:
+      enabled: true
+      host: localhost
+      port: 5066
+
+    output.logstash:
+      hosts: ["${LOGSTASH_HOSTS}"]
+      index: ${INDEX_PREFIX}
+      timeout: 15
+    
+    logging.level: ${LOG_LEVEL}
+---
+
+# ------------------- Filebeat Service ------------------- #
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: filebeat
+    prom-job: elk-filebeat
+  name: filebeat
+  namespace: monitoring
+spec:
+  clusterIP: None
+  ports:
+  - name: metrics
+    port: 5066
+  - name: exporter
+    port: 9479
+  selector:
+    app: filebeat
+---
+
+# ------------------- Filebeat DaemonSet ------------------- #
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: filebeat
+  namespace: monitoring
+  labels:
+    app: filebeat
+spec:
+  selector:
+    matchLabels:
+      app: filebeat
+  template:
+    metadata:
+      name: filebeat
+      labels:
+        namespace: monitoring
+        app: filebeat
+    spec:
+      containers:
+      - name: filebeat
+        image: docker.elastic.co/beats/filebeat:6.4.2
+        securityContext:
+          runAsUser: 0
+        resources:
+          limits:
+            cpu: 50m
+            memory: 50Mi
+        ports:
+          - name: metrics
+            containerPort: 5066
+        env:
+          - name: LOGSTASH_HOSTS
+            value: logstash.monitoring.svc.cluster.local:5000
+          - name: LOG_LEVEL
+            value: info
+          - name: INDEX_PREFIX
+            value: "k8s-"
+        volumeMounts:
+          - name: config
+            mountPath: /usr/share/filebeat/filebeat.yml
+            subPath: filebeat.yml
+          - name: varlogcontainers
+            mountPath: /var/log/containers
+          - name:  varlogpods
+            mountPath: /var/log/pods
+            readOnly: true
+          - name: varlibdockercontainers
+            mountPath: /var/lib/docker/containers
+            readOnly: true
+      - name: beat-exporter
+        image: trustpilot/beat-exporter:0.1.1
+        ports:
+        - name: exporter
+          containerPort: 9479
+        resources:
+          limits:
+            cpu: 50m
+            memory: 100Mi
+      volumes:
+      - name: config
+        configMap:
+          name: filebeat-config
+      - name: varlogcontainers
+        hostPath:
+          path: /var/log/containers
+      - name: varlogpods
+        hostPath:
+          path: /var/log/pods
+      - name: varlibdockercontainers
+        hostPath:
+          path: /var/lib/docker/containers
+---
+
+# ------------------- Filebeat ServiceMonitor ------------------- #
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: filebeat
+  namespace: monitoring
+spec:
+  selector:
+    matchLabels:
+      app: filebeat
+      prom-job: elk-filebeat
+  jobLabel: prom-job
+  endpoints:
+  - port: exporter

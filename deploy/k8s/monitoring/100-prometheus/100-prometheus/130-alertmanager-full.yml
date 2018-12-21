@@ -1,0 +1,66 @@
+# ------------------- Alertmanager Secret ------------------- #
+apiVersion: v1
+kind: Secret
+metadata:
+  name: alertmanager-main
+  namespace: monitoring
+type: Opaque
+data:
+  alertmanager.yaml: Z2xvYmFsOgogIHNtdHBfc21hcnRob3N0OiAnbWFpbGhvZy5tb25pdG9yaW5nLnN2Yy5jbHVzdGVyLmxvY2FsOjEwMjUnCiAgc210cF9mcm9tOiAnYWxlcnRtYW5hZ2VyQGs4cy1leGFtcGxlLmNvbScKICBzbXRwX3JlcXVpcmVfdGxzOiBmYWxzZQogIHNtdHBfaGVsbG86ICdrOHMtYWxlcnRtYW5hZ2VyJwogIAojIERlZmF1bHQgcm91dGUKcm91dGU6CiAgZ3JvdXBfYnk6IFtjbHVzdGVyLCBhbGVydG5hbWUsIHJlc291cmNlLCBzZXZlcml0eV0KCiAgIyBEZWZhdWx0IHJlY2VpdmVyCiAgcmVjZWl2ZXI6IHRlc3QtZW1haWxzCgogICMgQ2hpbGQgcm91dGVzCiAgcm91dGVzOgogICAgCiAgIyBDcmVhdGluZyBhIHJ1bGUgZm9yIENQVSByZWxhdGVkIGFsZXJ0cwogIC0gbWF0Y2hfcmU6CiAgICAgIHJlc291cmNlOiBeY3B1JAogICAgcmVjZWl2ZXI6IGNwdS1tYWlscwoKICAgICMgU3ViIHJvdXRlIGZvciBjcml0aWNhbCBDUFUgYWxlcnRzCiAgICByb3V0ZXM6CiAgICAtIG1hdGNoOgogICAgICAgIHNldmVyaXR5OiBjcml0aWNhbAogICAgICByZWNlaXZlcjogY3JpdC1tYWlscwoKIyBTZXR0aW5nIGRpZmZlcmVudCByZWNlaXZlcnMKcmVjZWl2ZXJzOgotIG5hbWU6ICd0ZXN0LWVtYWlscycKICBlbWFpbF9jb25maWdzOgogIC0gdG86ICd0ZXN0LWVtYWlsc0BleGFtcGxlLmNvbScKLSBuYW1lOiAnY3B1LW1haWxzJwogIGVtYWlsX2NvbmZpZ3M6CiAgLSB0bzogJ2NwdS1tYWlsc0BleGFtcGxlLmNvbScKLSBuYW1lOiAnY3JpdC1tYWlscycKICBlbWFpbF9jb25maWdzOgogICAgLSB0bzogJ2NyaXQtbWFpbHNAZXhhbXBsZS5jb20n
+---
+
+# ------------------- Alertmanager ServiceAccount ------------------- #
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: alertmanager-main
+  namespace: monitoring
+---
+
+# ------------------- Alertmanager Service ------------------- #
+apiVersion: v1
+kind: Service
+metadata:
+  name: alertmanager-main
+  namespace: monitoring
+  labels:
+    app: alertmanager-main
+spec:
+  type: NodePort
+  ports:
+  - name: web
+    nodePort: 30903
+    port: 9093
+    protocol: TCP
+    targetPort: web
+  selector:
+    alertmanager: main
+---
+
+# ------------------- Alertmanager Cluster ------------------- #
+apiVersion: monitoring.coreos.com/v1
+kind: Alertmanager
+metadata:
+  name: main
+  namespace: monitoring
+  labels:
+    app: alertmanager-main
+spec:
+  replicas: 1
+  baseImage: quay.io/prometheus/alertmanager
+  version: v0.15.2
+  serviceAccountName: alertmanager-main
+---
+
+# ------------------- Alertmanager Service Monitor ------------------- #
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: alertmanager-main
+  namespace: monitoring
+spec: 
+  selector:
+    matchLabels:
+      app: alertmanager-main
+  endpoints:
+  - port: web

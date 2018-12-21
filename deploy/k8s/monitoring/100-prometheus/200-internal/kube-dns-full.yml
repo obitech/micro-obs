@@ -1,0 +1,38 @@
+# ------------------- kube-dns Service ------------------- #
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: kube-system
+  name: kube-dns-prometheus-discovery
+  labels:
+    k8s-app: kube-dns
+spec:
+  selector:
+    k8s-app: kube-dns
+  type: ClusterIP
+  ports:
+  - name: http-metrics
+    port: 10054
+    targetPort: 10054
+    protocol: TCP
+---
+
+# ------------------- etcd Service Monitor ------------------- #
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  labels:
+    k8s-app: kube-dns
+  name: kube-dns
+  namespace: monitoring
+spec:
+  endpoints:
+  - interval: 30s
+    port: http-metrics
+  jobLabel: k8s-app
+  namespaceSelector:
+    matchNames:
+    - kube-system
+  selector:
+    matchLabels:
+      k8s-app: kube-dns

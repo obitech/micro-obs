@@ -1,0 +1,73 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kibana-config
+  namespace: monitoring
+  labels:
+    app: kibana
+data:
+  kibana.yml: |
+    server.name: ${KIBANA_HOST}
+    server.host: "0"
+    elasticsearch.url: ${ES_HOST}
+    xpack.security.enabled: false
+    xpack.monitoring.enabled: false
+    xpack.graph.enabled: false
+    xpack.reporting.enabled: false
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: kibana
+  namespace: monitoring
+  labels:
+    app: kibana
+spec:
+  selector:
+    app: kibana
+  type: NodePort
+  ports:
+  - name: http
+    port: 5601
+    targetPort: 5601
+    nodePort: 30601
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kibana
+  namespace: monitoring
+  labels:
+    app: kibana
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kibana
+  template:
+    metadata:
+      name: kibana
+      labels:
+        app: kibana 
+    spec:
+      containers:
+      - name: kibana
+        image: docker.elastic.co/kibana/kibana:6.4.2
+        env:
+        - name: KIBANA_HOST
+          value: kibana.monitoring.cluster.local
+        - name: ES_HOST
+          value: elasticsearch.monitoring.svc.cluster.local:9200
+        ports:
+        - name: http
+          containerPort: 5601
+        volumeMounts:
+          - name: config
+            mountPath: /usr/share/kibana/kibana.yml
+            subPath: kibana.yml
+      volumes:
+      - name: config
+        configMap:
+          name: kibana-config

@@ -1,0 +1,84 @@
+# ------------------- Item Redis Service ------------------- #
+kind: Service
+apiVersion: v1
+metadata:
+  name:  redis-item
+  namespace: micro-obs
+  labels:
+    app: redis
+    service: item
+spec:
+  type: ClusterIP
+  selector:
+    app:  redis
+    service: item
+  ports:
+  - name:  redis
+    protocol: TCP
+    port:  6379
+    targetPort: redis
+  - name: prom
+    protocol: TCP
+    port: 9121
+---
+
+# ------------------- Item Redis Deployment ------------------- #
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis-item
+  namespace: micro-obs
+  labels:
+    app: redis
+    service: item
+spec:
+  selector:
+    matchLabels:
+      app: redis
+      service: item
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: redis
+        service: item
+    spec:
+      containers:
+      - name: redis-master
+        image: redis:5
+        resources:
+          requests:
+            cpu: 100m
+            memory: 100Mi
+        ports:
+        - name: redis
+          protocol: TCP
+          containerPort: 6379
+      - name: redis-exporter
+        image: oliver006/redis_exporter:latest
+        resources:
+          requests:
+            cpu: 100m
+            memory: 100Mi
+        ports:
+        - name: prom
+          containerPort: 9121
+---
+
+# ------------------- Item Redis ServiceMonitor ------------------- #
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: redis-item
+  namespace: micro-obs
+  labels:
+      app: redis
+      service: item
+spec:
+  selector:
+    matchLabels:
+        app: redis
+        service: item
+  endpoints:
+  - port: prom
+  

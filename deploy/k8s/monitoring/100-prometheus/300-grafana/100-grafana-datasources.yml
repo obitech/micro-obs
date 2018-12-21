@@ -1,0 +1,19 @@
+# ------------------- Grafana Data Sources ConfigMap ------------------- #
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-datasources
+  namespace: monitoring
+  labels:
+    app: grafana
+data:
+  prometheus-datasource.yml: |
+    apiVersion: 1
+    datasources:
+    - name: prometheus
+      type: prometheus
+      access: proxy
+      url: http://prometheus-core.monitoring.svc.cluster.local:9090
+      isDefault: true
+      version: 1
+      editable: true

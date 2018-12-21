@@ -1,0 +1,135 @@
+# ------------------- Grafana Service Account ------------------- #
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: grafana
+  namespace: monitoring
+---
+
+# ------------------- Grafana Service ------------------- #
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana
+  labels:
+    app: grafana
+  namespace: monitoring
+spec:
+  type: NodePort
+  ports:
+  - name: http
+    nodePort: 30300
+    port: 3000
+    targetPort: http
+  selector:
+    app: grafana
+  sessionAffinity: ClientIP
+---
+
+# ------------------- Grafana Deployment ------------------- #
+apiVersion: apps/v1beta2
+kind: Deployment
+metadata:
+  labels:
+    app: grafana
+  name: grafana
+  namespace: monitoring
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: grafana
+  template:
+    metadata:
+      labels:
+        app: grafana
+    spec:
+      containers:
+      - image: grafana/grafana:5.2.4
+        name: grafana
+        ports:
+        - containerPort: 3000
+          name: http
+        resources:
+          limits:
+            cpu: 200m
+            memory: 200Mi
+          requests:
+            cpu: 100m
+            memory: 100Mi
+        env:
+          # The following env variables set up basic auth twith the default admin user and admin password.
+          - name: GF_AUTH_BASIC_ENABLED
+            value: "true"
+          - name: GF_AUTH_ANONYMOUS_ENABLED
+            value: "false"
+          - name: GF_PATHS_PROVISIONING
+            value: "/srv/provisioning"
+        readinessProbe:
+          httpGet:
+            path: /login
+            port: 3000
+        volumeMounts:
+        - name: grafana-persistent-storage
+          mountPath: /var/lib/grafana
+        - name: grafana-datasources
+          mountPath: /srv/provisioning/datasources
+        - name: grafana-dashboards-config
+          mountPath: /srv/provisioning/dashboards
+        - name: grafana-dashboards-kubernetes
+          mountPath: /srv/provisioning/import/dashboards/grafana-dashboards-kubernetes.json
+          subPath: grafana-dashboards-kubernetes.json
+        - name: grafana-dashboards-node-exporter
+          mountPath: /srv/provisioning/import/dashboards/grafana-dashboards-node-exporter.json
+          subPath: grafana-dashboards-node-exporter.json
+        - name: grafana-dashboards-redis
+          mountPath: /srv/provisioning/import/dashboards/grafana-dashboards-redis.json
+          subPath: grafana-dashboards-redis.json
+        - name: grafana-dashboards-prometheus
+          mountPath: /srv/provisioning/import/dashboards/grafana-dashboards-prometheus.json
+          subPath: grafana-dashboards-prometheus.json
+        - name: grafana-dashboards-grafana
+          mountPath: /srv/provisioning/import/dashboards/grafana-dashboards-grafana.json
+          subPath: grafana-dashboards-grafana.json
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+      serviceAccountName: grafana      
+      volumes:
+      - name: grafana-persistent-storage
+        emptyDir: {}
+      - name: grafana-datasources
+        configMap:
+          name: grafana-datasources
+      - name: grafana-dashboards-config
+        configMap:
+          name: grafana-dashboards-config
+      - name: grafana-dashboards-kubernetes
+        configMap:
+          name: grafana-dashboards-kubernetes
+      - name: grafana-dashboards-node-exporter
+        configMap:
+          name: grafana-dashboards-node-exporter
+      - name: grafana-dashboards-redis
+        configMap:
+          name: grafana-dashboards-redis
+      - name: grafana-dashboards-prometheus
+        configMap:
+          name: grafana-dashboards-prometheus
+      - name: grafana-dashboards-grafana
+        configMap:
+          name: grafana-dashboards-grafana
+---
+
+# ------------------- Grafana ServiceMonitor ------------------- #
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: grafana
+  namespace: monitoring
+spec:
+  selector:
+    matchLabels:
+      app: grafana
+  endpoints:
+  - port: http
