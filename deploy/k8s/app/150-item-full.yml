@@ -43,7 +43,7 @@ spec:
     spec:
       containers:
       - name: item
-        image: obitech/micro-obs:v0.2.0
+        image: obitech/micro-obs:v0.2.1
         env:
           - name: JAEGER_AGENT_HOST
             value: jaeger-agent.monitoring.svc.cluster.local

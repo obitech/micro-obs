@@ -36,7 +36,7 @@ services:
     
   item:
     container_name: micro-obs-item
-    image: obitech/micro-obs:master
+    image: obitech/micro-obs:v0.2.1
     command: item -r redis://redis-item:6379/0
     ports:
       - "8080:8080"
@@ -57,7 +57,7 @@ services:
 
   order:
     container_name: micro-obs-order
-    image: obitech/micro-obs:master
+    image: obitech/micro-obs:v0.2.1
     command: order -r redis://redis-order:6380/0 -i http://item:8080
     ports:
       - "8090:8090"
