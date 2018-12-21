@@ -95,7 +95,6 @@ func NewServer(options ...ServerOptions) (*Server, error) {
 
 	// Setting routes
 	s.createRoutes()
-	s.router.NotFoundHandler = http.HandlerFunc(s.notFound)
 
 	return s, nil
 }

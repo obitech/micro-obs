@@ -77,7 +77,7 @@ func (s *Server) createRoutes() {
 		h = util.TracerMiddleware(h, route)
 
 		// Monitoring each request
-		promHandler := util.PrometheusMiddleware(h, route, rm)
+		promHandler := util.PrometheusMiddleware(h, route.Name, rm)
 
 		s.router.
 			Methods(route.Method).
@@ -101,4 +101,8 @@ func (s *Server) createRoutes() {
 		Path(route.Pattern).
 		Name(route.Name).
 		Handler(promHandler)
+
+	// 404 handler
+	notFound := util.PrometheusMiddleware(s.notFound(), "metrics", rm)
+	s.router.NotFoundHandler = notFound
 }

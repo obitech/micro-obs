@@ -14,6 +14,7 @@ var (
 	itemCmd = &cobra.Command{
 		Use:   "item",
 		Short: "populate data for the item service",
+		Run:   itemDefaultData,
 	}
 
 	itemPingCmd = &cobra.Command{

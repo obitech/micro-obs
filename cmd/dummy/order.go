@@ -14,6 +14,7 @@ var (
 	orderCmd = &cobra.Command{
 		Use:   "order",
 		Short: "populate data for the order service",
+		Run:   orderDefaultData,
 	}
 
 	orderPingCmd = &cobra.Command{
