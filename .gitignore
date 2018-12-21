@@ -2,7 +2,7 @@
 /bin/item
 /bin/dummy
 /deploy/docker/data/*
-
+*.xml
 
 # Created by https://www.gitignore.io/api/go,macos,python,vagrant,terraform
 # Edit at https://www.gitignore.io/?templates=go,macos,python,vagrant,terraform

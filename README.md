@@ -2,12 +2,47 @@
 
 [![Build Status](https://travis-ci.org/obitech/micro-obs.svg?branch=master)](https://travis-ci.org/obitech/micro-obs) [![Go Report Card](https://goreportcard.com/badge/github.com/obitech/micro-obs)](https://goreportcard.com/report/github.com/obitech/micro-obs) [![](https://img.shields.io/docker/automated/jrottenberg/ffmpeg.svg)](https://hub.docker.com/r/obitech/micro-obs)
 
-
-Demonstrating monitoring, logging and tracing of a simple microservices shop application on Kubernetes:
+Example of instrumenting a Go microservices application:
 
 - Structured logging via [zap](https://github.com/uber-go/zap)
 - Automatic endpoint monitoring exposing metrics to [Prometheus](https://github.com/prometheus/prometheus)
 - Internal & distributed tracing via [Jaeger](https://github.com/jaegertracing/jaeger)
+
+Deployments can be made via Docker and on Kubernetes. Additional instrumentation:
+
+- Monitoring of demo app and internal Kubernetes components via [Prometheus Operator](https://github.com/coreos/prometheus-operator)
+- Automatic container log aggregation via [ELK Stack](https://www.elastic.co/elk-stack)
+
+The example application consists of two services: `item` and `order`. Both service have a seperate [redis](https://redis.io) instance as their primary data store. When an order gets placed, `order` contacts `item` to check if the wished items with the requested quantities are in stock:
+
+![Application overview](static/micro-obs-overview.png)
+
+API endpoints of both services are instrumented via Prometheus and export the following metrics:
+
+- `in_flight_requests`: a gauge of requests currently being served by the wrapped handler
+- `api_requests_total`: a counter for requests to the wrapped handler
+- `request_duration_seconds`: a histogram for request latencies
+- `response_size_bytes`: a histogram for response sizes
+
+Additionally, all requests are traced via Jaeger:
+
+![Observability overview](static/micro-obs-observability.png)
+
+On Kubernetes, next to the application and node-specific metrics exposed via [node_exporter](https://github.com/prometheus/node_exporter), internal Kubernetes components are monitored as well:
+
+- `kube-apiserver`
+- `kube-dns`
+- `etcd`
+- `kube-controller-manager`
+- `kube-scheduler`
+- `kubelet`
+- [`kube-state-metrics`](https://github.com/kubernetes/kube-state-metrics)
+
+Proemtheus is fully managed via the Prometheus Operator, allowing flexible deployment of new instances, rules, alertmanagers as well as convenient monitoring of Services via ServiceMonitors. A [Mailhog](https://github.com/mailhog/MailHog) instance is deployed to test the alerting pipeline.
+
+For the ELK Stack, a Filebeat DaemonSet is watching all container logs on the nodes.
+
+![Kubernetes overview, arrows are omitted for visibility](static/micro-obs-kubernetes.png)
 
 ## Build it
 
@@ -44,17 +79,44 @@ docker-compose up -d
 
 Service|Location
 ---|---
-Item API|http://localhost:8080/
-Jaeger UI|http://localhost:16686/
+item API|http://localhost:8080/
+order API|http://localhost:8090/
+Jaeger Query|http://localhost:16686/
 Prometheus|http://localhost:9090/
 Grafana|http://localhost:3000/
+
+Some sample Grafana dashboards can be found in `deploy/docker/dashboards`
+
+### Kubernetes
+
+This command will deploy `monitoring` stack first, it might also take another execution of for all resources to be created:
+
+```bash
+kubectl create -f deploy/k8s --recursive
+```
+
+Service|Location|Internal FQDN
+---|---|---
+item API|http://localhost:30808|http://item.micro-obs.service.cluster.local:8080
+item Redis|.|redis-item.micro-obs.service.cluster.local:3879
+order API|http://localhost:30809|http://order.micro-obs.service.cluster.local:8090
+order Redis|.|http://redis-order.micro-obs.service.cluster.local:3879
+Jaeger Query|http://localhost:30686|.
+Prometheus|http://localhost:30900|http://prometheus.monitoring.svc.cluster.local:9090
+Grafana|http://localhost:30300|.
+ElasticSearch|.|http://elasticsearch.monitoring.svc.cluster.local:9200
+Kibana|http://localhost:30601|.
+Mailhog|http://localhost:32025|mailhog.svc.cluster.local:1025
+
 
 ## [item](https://godoc.org/github.com/obitech/micro-obs/item)
 [![godoc reference for item](https://img.shields.io/badge/godoc-reference-blue.svg)](https://godoc.org/github.com/obitech/micro-obs/item) 
 
+## [order](https://godoc.org/github.com/obitech/micro-obs/order)
+[![godoc reference for ](https://img.shields.io/badge/godoc-reference-blue.svg)](https://godoc.org/github.com/obitech/micro-obs/order) 
 
-## [util](https://godoc.org/github.com/obitech/micro-obs/item)
-[![godoc reference for item](https://img.shields.io/badge/godoc-reference-blue.svg)](https://godoc.org/github.com/obitech/micro-obs/util) 
+## [util](https://godoc.org/github.com/obitech/micro-obs/util)
+[![godoc reference for util](https://img.shields.io/badge/godoc-reference-blue.svg)](https://godoc.org/github.com/obitech/micro-obs/util) 
 
 ## License
 
