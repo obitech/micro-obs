@@ -52,7 +52,7 @@ spec:
         command: ["order"]
         args: [
           "-r", "redis://redis-order:6379/0", 
-          "-i", "item.micro-obs.svc.cluster.local:8080"
+          "-i", "http://item.micro-obs.svc.cluster.local:8080"
         ]
         ports:
         - name: http

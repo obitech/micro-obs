@@ -8,16 +8,22 @@ import (
 )
 
 var (
-	orderAddr = "localhost:9090"
 	rootCmd   = &cobra.Command{
 		Use:   "dummy",
-		Short: "create populate item or order service with dummy data",
-		Long:  "will contact either the item or order service via HTTP to populate data in the underlying datastore",
+		Short: "populate item or order service with dummy data",
+		Long:  "will contact either the item or order service via HTTP to populate data in the underlying datastores",
 	}
+
+	itemAddr = "http://localhost:8080"
+	orderAddr = "http://localhost:8090"
 )
 
 func init() {
 	rootCmd.AddCommand(itemCmd)
+	rootCmd.AddCommand(orderCmd)
+
+	rootCmd.PersistentFlags().StringVarP(&itemAddr, "item-addr", "i", itemAddr, "address of the item service")
+	rootCmd.PersistentFlags().StringVarP(&orderAddr, "order-addr", "o", itemAddr, "address of the order service")
 }
 
 // Execute runs the cobra rootCmd.

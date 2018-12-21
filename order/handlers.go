@@ -195,7 +195,8 @@ func (s *Server) createOrder() http.HandlerFunc {
 					"itemID", orderItem.ID,
 					"error", err,
 				)
-				s.Respond(ctx, http.StatusInternalServerError, "unable to retrieve item from item service", 0, nil, w)
+				msg := fmt.Sprintf("unable to retrieve item %s from item service", orderItem.ID)
+				s.Respond(ctx, http.StatusInternalServerError, msg, 0, nil, w)
 				return
 			}
 

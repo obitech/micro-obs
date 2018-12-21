@@ -99,4 +99,5 @@ func (s *Server) createRoutes() {
 		Path(route.Pattern).
 		Name(route.Name).
 		Handler(promHandler)
+
 }
