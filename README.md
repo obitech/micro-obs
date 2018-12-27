@@ -112,8 +112,123 @@ Mailhog|http://localhost:32025|mailhog.svc.cluster.local:1025
 ## [item](https://godoc.org/github.com/obitech/micro-obs/item)
 [![godoc reference for item](https://img.shields.io/badge/godoc-reference-blue.svg)](https://godoc.org/github.com/obitech/micro-obs/item) 
 
+Method|Endpoint|Comment
+---|---|---
+GET|`/healthz`|Returns `OK` as string
+GET|`/ping`|Returns a standard API response
+GET|`/items`|Returns all items
+GET|`/items/{id:[a-zA-Z0-9]+}`|Returns a single item by ID
+DELETE|`/items/{id:[a-zA-Z0-9]+}`|Deletes a single item by ID
+POST|`/items`|Sends a JSON body to create a new item. Will not update if item already exists
+PUT|`/items`|Sends a JSON body to create or update an item. Will update existing item
+
+Request:
+
+```json
+POST http://localhost:8080/items
+[
+	{
+		"name": "banana",
+		"desc": "a yello fruit",
+		"qty": 5
+	},
+	{
+		"name": "water",
+		"desc": "bottles of water",
+		"qty": 10
+	},
+	{
+		"name": "apple",
+		"desc": "delicious",
+		"qty": 15
+	}
+]
+```
+
+Response:
+
+```json
+{
+    "status": 201,
+    "message": "items BxYs9DiGaIMXuakIxX, GWkUo1hE3u7vTxR, JAQU27CQrTkQCNr,  created",
+    "count": 3,
+    "data": [
+        {
+            "name": "banana",
+            "id": "BxYs9DiGaIMXuakIxX",
+            "desc": "a yello fruit",
+            "qty": 5
+        },
+        {
+            "name": "water",
+            "id": "GWkUo1hE3u7vTxR",
+            "desc": "bottles of water",
+            "qty": 10
+        },
+        {
+            "name": "apple",
+            "id": "JAQU27CQrTkQCNr",
+            "desc": "delicious",
+            "qty": 15
+        }
+    ]
+}
+```
+
 ## [order](https://godoc.org/github.com/obitech/micro-obs/order)
 [![godoc reference for ](https://img.shields.io/badge/godoc-reference-blue.svg)](https://godoc.org/github.com/obitech/micro-obs/order) 
+
+Method|Endpoint|Comment
+---|---|---
+GET|`/healthz`|Returns `OK` as string
+GET|`/ping`|Returns a standard API response
+GET|`/orders`|Returns all orders
+GET|`/orders/{id:[0-9]+}`|Returns a single order by ID
+DELETE|`/orders/{id:[a-zA-Z0-9]+}`|Deletes a single order by ID
+POST|`/orders/create`|Creates a new order. Will query the `item` service first to check if passed items exist and are present in the wished quantity
+
+Request:
+
+```json
+POST http://localhost:8090/orders/create
+{
+	"items": [
+		{
+			"id": "BxYs9DiGaIMXuakIxX",
+			"qty": 2
+		},
+		{
+			"id": "GWkUo1hE3u7vTxR",
+			"qty": 8
+		}
+	]
+}
+```
+
+Response:
+
+```json
+{
+    "status": 201,
+    "message": "order 1 created",
+    "count": 1,
+    "data": [
+        {
+            "id": 1,
+            "items": [
+                {
+                    "id": "BxYs9DiGaIMXuakIxX",
+                    "qty": 2
+                },
+                {
+                    "id": "GWkUo1hE3u7vTxR",
+                    "qty": 8
+                }
+            ]
+        }
+    ]
+}
+```
 
 ## [util](https://godoc.org/github.com/obitech/micro-obs/util)
 [![godoc reference for util](https://img.shields.io/badge/godoc-reference-blue.svg)](https://godoc.org/github.com/obitech/micro-obs/util) 
