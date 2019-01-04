@@ -86,6 +86,7 @@ var (
 		{"GET", "/healthz", http.StatusOK},
 		{"GET", "/asdasd", http.StatusNotFound},
 		{"GET", "/metrics", http.StatusOK},
+		{"GET", "/delay", http.StatusOK},
 		{"GET", "/orders", http.StatusNotFound},
 		{"POST", "/orders", http.StatusBadRequest},
 		{"PUT", "/orders", http.StatusBadRequest},

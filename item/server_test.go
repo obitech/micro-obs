@@ -75,6 +75,7 @@ var (
 		{"GET", "/asdasd", http.StatusNotFound},
 		{"GET", "/metrics", http.StatusOK},
 		{"GET", "/items", http.StatusNotFound},
+		{"GET", "/delay", http.StatusOK},
 		{"POST", "/items", http.StatusBadRequest},
 		{"PUT", "/items", http.StatusBadRequest},
 		{"DELETE", "/", http.StatusMethodNotAllowed},

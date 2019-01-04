@@ -65,6 +65,12 @@ func (s *Server) createRoutes() {
 			Pattern:     "/items/{id:[a-zA-Z0-9]+}",
 			HandlerFunc: s.delItem(),
 		},
+		util.Route{
+			Name:        "delay",
+			Method:      "GET",
+			Pattern:     "/delay",
+			HandlerFunc: s.delay(),
+		},
 	}
 
 	for _, route := range routes {

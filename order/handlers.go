@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"math/rand"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gorilla/mux"
 	ot "github.com/opentracing/opentracing-go"
@@ -262,5 +264,26 @@ func (s *Server) getOrder() http.HandlerFunc {
 		}
 
 		s.Respond(ctx, http.StatusOK, "order retrieved", 1, []*Order{order}, w)
+	}
+}
+
+// delay returns after a random period to simulate reequest delay.
+func (s *Server) delay() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		span, ctx := ot.StartSpanFromContext(r.Context(), "delay")
+		defer span.Finish()
+
+		// Simulate delay between 10ms - 1500ms
+		rand.Seed(time.Now().UnixNano())
+		t := time.Duration((rand.Float64()*1500)+10) * time.Millisecond
+
+		span.SetTag("wait", t)
+		s.logger.Debugw("Waiting",
+			"time", t,
+		)
+
+		time.Sleep(t)
+
+		s.Respond(ctx, http.StatusOK, fmt.Sprintf("waited %v", t), 0, nil, w)
 	}
 }

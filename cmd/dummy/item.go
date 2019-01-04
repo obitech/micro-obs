@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
+	"math/rand"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/spf13/cobra"
 )
@@ -24,16 +26,23 @@ var (
 	}
 
 	itemDefaultCmd = &cobra.Command{
-		Use:   "default",
+		Use:   "data",
 		Short: "uses default data to populate",
 		Long:  fmt.Sprintf("the following data will be sent to the service:\n%s", itemJSON),
 		Run:   itemDefaultData,
+	}
+
+	itemRequestsCmd = &cobra.Command{
+		Use:   "requests",
+		Short: "sends 50 requests",
+		Run:   itemRequests,
 	}
 )
 
 func init() {
 	itemCmd.AddCommand(itemPingCmd)
 	itemCmd.AddCommand(itemDefaultCmd)
+	itemCmd.AddCommand(itemRequestsCmd)
 }
 
 func itemPing(cmd *cobra.Command, args []string) {
@@ -79,5 +88,20 @@ func itemDefaultData(cmd *cobra.Command, args []string) {
 	default:
 		fmt.Printf("Unexpected status code %d: %s", res.StatusCode, b)
 		os.Exit(1)
+	}
+}
+
+func itemRequests(cmd *cobra.Command, args []string) {
+	rand.Seed(time.Now().UnixNano())
+	for i := 0; i < 20; i++ {
+		_, err := http.Get(fmt.Sprintf("%s/delay", itemAddr))
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+
+		// Sleep between 0 and 100ms
+		t := rand.Float64()
+		time.Sleep(time.Duration(100*t) * time.Millisecond)
 	}
 }

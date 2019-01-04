@@ -24,7 +24,7 @@ var (
 	}
 
 	orderDefaultCmd = &cobra.Command{
-		Use:   "default",
+		Use:   "data",
 		Short: "uses default data to populate",
 		Long:  fmt.Sprintf("This command depends on the specific item IDs to be present in the item service. The following data will be sent to the service:\n%s", orderJSON),
 		Run:   orderDefaultData,
