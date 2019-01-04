@@ -175,14 +175,14 @@ Use it to create some dummy data:
 
 After creating the dummy data, those transactions can be found in the Jaeger Query UI at http://localhost:30686:
 
-![Jaeger UI start screen](static/jaeger1.png)
-![Jaeger sample trace](static/jaeger2.png)
+![Jaeger UI start screen](static/jaeger1.PNG)
+![Jaeger sample trace](static/jaeger2.PNG)
 
 ### Prometheus
 
 Both the Kubernetes' internal components as well as the `micro-obs` application is being monitored by Prometheus. Some pre-installed Dashboards can be found in Grafana via http://localhost:30300 (default login is admin:admin):
 
-![Grafana Kubernetes dashboard](static/grafana1.png)
+![Grafana Kubernetes dashboard](static/grafana1.PNG)
 
 ## [item](https://godoc.org/github.com/obitech/micro-obs/item)
 [![godoc reference for item](https://img.shields.io/badge/godoc-reference-blue.svg)](https://godoc.org/github.com/obitech/micro-obs/item) 
