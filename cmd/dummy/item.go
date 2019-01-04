@@ -34,7 +34,7 @@ var (
 
 	itemRequestsCmd = &cobra.Command{
 		Use:   "requests",
-		Short: "sends 50 requests",
+		Short: "sends requests to delay endpoint",
 		Run:   itemRequests,
 	}
 )
@@ -93,7 +93,7 @@ func itemDefaultData(cmd *cobra.Command, args []string) {
 
 func itemRequests(cmd *cobra.Command, args []string) {
 	rand.Seed(time.Now().UnixNano())
-	for i := 0; i < 20; i++ {
+	for i := 0; i < 15; i++ {
 		_, err := http.Get(fmt.Sprintf("%s/delay", itemAddr))
 		if err != nil {
 			fmt.Println(err)

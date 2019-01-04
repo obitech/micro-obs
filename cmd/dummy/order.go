@@ -24,18 +24,23 @@ var (
 	}
 
 	orderDefaultCmd = &cobra.Command{
-		Use:   "data",
+		Use:   "default",
 		Short: "uses default data to populate",
 		Long:  fmt.Sprintf("This command depends on the specific item IDs to be present in the item service. The following data will be sent to the service:\n%s", orderJSON),
 		Run:   orderDefaultData,
+	}
+
+	orderRequestsCmd = &cobra.Command{
+		Use:   "requests",
+		Short: "sends requests to delay endpoint",
+		Run:   orderRequests,
 	}
 )
 
 func init() {
 	orderCmd.AddCommand(orderPingCmd)
 	orderCmd.AddCommand(orderDefaultCmd)
-
-	orderCmd.PersistentFlags().StringVarP(&orderAddr, "order-addr", "o", orderAddr, "address of the of order service")
+	orderCmd.AddCommand(orderRequestsCmd)
 }
 
 func orderPing(cmd *cobra.Command, args []string) {
@@ -82,6 +87,16 @@ func orderDefaultData(cmd *cobra.Command, args []string) {
 			fmt.Printf("%s", string(b))
 		default:
 			fmt.Printf("Unexpected status code %d: %s", res.StatusCode, b)
+			os.Exit(1)
+		}
+	}
+}
+
+func orderRequests(cmd *cobra.Command, args []string) {
+	for i := 0; i < 15; i++ {
+		_, err := http.Get(fmt.Sprintf("%s/delay", orderAddr))
+		if err != nil {
+			fmt.Println(err)
 			os.Exit(1)
 		}
 	}

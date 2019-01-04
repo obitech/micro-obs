@@ -274,7 +274,6 @@ func (s *Server) delay() http.HandlerFunc {
 		defer span.Finish()
 
 		// Simulate delay between 10ms - 1500ms
-		rand.Seed(time.Now().UnixNano())
 		t := time.Duration((rand.Float64()*1500)+10) * time.Millisecond
 
 		span.SetTag("wait", t)
