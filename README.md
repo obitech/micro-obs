@@ -69,9 +69,14 @@ make docker TAG=yourname/yourimage
 # ...
 ```
 
-## Run it
+## Deploy it
 
 ### Docker
+
+Make sure [Docker](https://docs.docker.com/install/) and [Docker Compose](https://docs.docker.com/compose/install/) are installed.
+
+Deploy the stack:
+
 ```bash
 cd deploy/docker
 docker-compose up -d
@@ -89,10 +94,50 @@ Some sample Grafana dashboards can be found in `deploy/docker/dashboards`
 
 ### Kubernetes
 
-This command will deploy `monitoring` stack first, it might also take another execution of for all resources to be created:
+Make sure [Docker](https://docs.docker.com/install/) and Kubernets (via [Minikube](https://github.com/kubernetes/minikube) or [microk8s](https://microk8s.io), for example) are installed.
+
+Deploy the `monitoring` stack first:
 
 ```bash
-kubectl create -f deploy/k8s --recursive
+kubectl create -f deploy/k8s/000-monitoring --recursive
+```
+
+It might take a while for the [Prometheus Operator](https://github.com/coreos/prometheus-operator) CRDs to be created. If the deployment fails, try running above command again.
+
+Check if everything is up:
+
+```
+$ kubectl get pods -n monitoring
+NAME                                   READY     STATUS    RESTARTS   AGE
+alertmanager-main-0                    2/2       Running   0          1m
+elasticsearch-f8dc4db44-l7ddn          2/2       Running   0          1m
+filebeat-pnx76                         2/2       Running   0          1m
+grafana-5bfbfb9665-nf9c9               1/1       Running   0          1m
+jaeger-deployment-ff5c4dccc-tfxns      1/1       Running   0          1m
+kibana-86c4b5577b-dxtpf                1/1       Running   0          1m
+kube-state-metrics-58dcbb8579-hsw78    4/4       Running   0          1m
+logstash-74479c885f-5lfcw              1/1       Running   0          1m
+mailhog-778bd8484d-8vqfg               1/1       Running   0          1m
+node-exporter-swtd6                    2/2       Running   0          1m
+prometheus-core-0                      3/3       Running   0          1m
+prometheus-operator-85bb8dc95b-wqpx6   1/1       Running   0          1m
+```
+
+Next deploy `micro-obs` stack:
+
+```bash
+kubectl create -f deploy/k8s/100-micro-obs/ --recursive
+```
+
+Check if everything is up:
+
+```
+$ kubectl get pods -n micro-obs
+NAME                           READY     STATUS    RESTARTS   AGE
+item-54d9d7d554-2thtl          1/1       Running   0          1m
+order-6549584969-k2cp8         1/1       Running   0          1m
+redis-item-5bcf99c9f7-zdf2r    2/2       Running   0          1m
+redis-order-68869c7986-4s7w2   2/2       Running   0          1m
 ```
 
 Service|Location|Internal FQDN
@@ -108,6 +153,36 @@ ElasticSearch|.|http://elasticsearch.monitoring.svc.cluster.local:9200
 Kibana|http://localhost:30601|.
 Mailhog|http://localhost:32025|mailhog.svc.cluster.local:1025
 
+## Use it
+
+### Preparation
+
+This part assumes you have succsessfully deployed the application into a Kubernetes cluster and a working Go environment.
+
+First build the `dummy` CLI application:
+
+```make
+make build-dummy
+```
+
+Use it to create some dummy data:
+
+```
+./bin/dummy default -i http://localhost:30808 -o http://localhost:30809
+```
+
+### Jaeger
+
+After creating the dummy data, those transactions can be found in the Jaeger Query UI at http://localhost:30686:
+
+![Jaeger UI start screen](static/jaeger1.png)
+![Jaeger sample trace](static/jaeger2.png)
+
+### Prometheus
+
+Both the Kubernetes' internal components as well as the `micro-obs` application is being monitored by Prometheus. Some pre-installed Dashboards can be found in Grafana via http://localhost:30300 (default login is admin:admin):
+
+![Grafana Kubernetes dashboard](static/grafana1.png)
 
 ## [item](https://godoc.org/github.com/obitech/micro-obs/item)
 [![godoc reference for item](https://img.shields.io/badge/godoc-reference-blue.svg)](https://godoc.org/github.com/obitech/micro-obs/item) 
