@@ -15,7 +15,7 @@ services:
     ports:
       - "9090:9090"
     volumes:
-      - "./conf/prometheus.yml:/etc/prometheus/prometheus.yml"
+      - "./conf/prometheus.yml:/etc/prometheus/prometheus.yml:ro"
     restart: always
 
   grafana:
@@ -25,6 +25,43 @@ services:
       - "3000:3000"
     volumes:
       - "./data/grafana:/var/lib/grafana"
+    restart: always
+
+
+  elasticsearch:
+    container_name: micro-obs-elasticsearch
+    image: elastic/elasticsearch:6.5.4
+    restart: always
+    environment:
+      ES_JAVA_OPTS: "-Xmx256m -Xms256m"
+      xpack.security.enabled: "false"
+      xpack.watcher.enabled: "false"
+      xpack.graph.enabled: "false"
+      xpack.monitoring.enabled: "false"
+    
+  logstash:
+    container_name: micro-obs-logstash
+    image: elastic/logstash:6.5.4
+    ports:
+      - "5000:5000"
+    volumes:
+      - "./conf/logstash.yml:/usr/share/logstash/config/logstash.yml:ro"
+      - "./conf/logstash.conf:/usr/share/logstash/pipeline/logstash.conf:ro"
+    environment:
+      LS_JAVA_OPTS: "-Xmx256m -Xms256m"
+    depends_on:
+      - elasticsearch
+    restart: always
+  
+  kibana:
+    container_name: micro-obs-kibana
+    image: elastic/kibana:6.5.4
+    ports:
+      - "5601:5601"
+    volumes:
+      - "./conf/kibana.yml:/usr/share/kibana/kibana.yml:ro"
+    depends_on:
+      - elasticsearch
     restart: always
 
   redis-item:
@@ -43,8 +80,14 @@ services:
     environment:
       - "JAEGER_AGENT_HOST=jaeger"
       - "JAEGER_AGENT_PORT=6831"
+    logging:
+      driver: syslog
+      options:
+        syslog-address: "tcp://127.0.0.1:5000"
+        syslog-facility: daemon
     depends_on:
       - redis-item
+      - logstash
     restart: always
 
   redis-order:
@@ -64,8 +107,13 @@ services:
     environment:
       - "JAEGER_AGENT_HOST=jaeger"
       - "JAEGER_AGENT_PORT=6831"
+    logging:
+      driver: syslog
+      options:
+        syslog-address: "tcp://127.0.0.1:5000"      
     depends_on:
       - redis-order
+      - logstash
     restart: always
   
   redis-exporter:
@@ -76,3 +124,5 @@ services:
       - redis-item
       - redis-order
     restart: always
+
+      
