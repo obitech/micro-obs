@@ -85,6 +85,7 @@ services:
       options:
         syslog-address: "tcp://127.0.0.1:5000"
         syslog-facility: daemon
+        syslog-format: rfc5424
     depends_on:
       - redis-item
       - logstash
@@ -110,14 +111,16 @@ services:
     logging:
       driver: syslog
       options:
-        syslog-address: "tcp://127.0.0.1:5000"      
+        syslog-address: "tcp://127.0.0.1:5000"
+        syslog-facility: daemon
+        syslog-format: rfc5424 
     depends_on:
       - redis-order
       - logstash
     restart: always
   
   redis-exporter:
-    container_name: redis-exporter
+    container_name: micro-obs-redis-exporter
     image: oliver006/redis_exporter:v0.24.0
     command: --redis.addr=redis://redis-order:6380/0,redis://redis-item:6379/0
     depends_on:
