@@ -63,6 +63,12 @@ func (s *Server) createRoutes() {
 			Pattern:     "/delay",
 			HandlerFunc: s.delay(),
 		},
+		util.Route{
+			Name:        "simulateError",
+			Method:      "GET",
+			Pattern:     "/error",
+			HandlerFunc: s.simulateError(),
+		},
 	}
 
 	for _, route := range routes {

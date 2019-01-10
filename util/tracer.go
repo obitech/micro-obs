@@ -21,7 +21,7 @@ func InitTracer(serviceName string, logger *Logger) (ot.Tracer, io.Closer, error
 
 	cfg.Sampler.Type = "const"
 	cfg.Sampler.Param = 1
-	cfg.Reporter.LogSpans = true
+	cfg.Reporter.LogSpans = false
 
 	tracer, closer, err := cfg.New(
 		serviceName,

@@ -80,6 +80,7 @@ var (
 		{"PUT", "/items", http.StatusBadRequest},
 		{"DELETE", "/", http.StatusMethodNotAllowed},
 		{"DELETE", "/items", http.StatusMethodNotAllowed},
+		{"GET", "/error", http.StatusInternalServerError},
 	}
 
 	validJSON = []string{

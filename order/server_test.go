@@ -90,6 +90,7 @@ var (
 		{"GET", "/orders", http.StatusNotFound},
 		{"POST", "/orders", http.StatusBadRequest},
 		{"PUT", "/orders", http.StatusBadRequest},
+		{"GET", "/error", http.StatusInternalServerError},
 	}
 
 	validJSON = []string{

@@ -11,6 +11,7 @@ import (
 
 	"github.com/gorilla/mux"
 	ot "github.com/opentracing/opentracing-go"
+	"github.com/pkg/errors"
 )
 
 // NotFound is a 404 Message according to the Response type
@@ -265,5 +266,19 @@ func (s *Server) delay() http.HandlerFunc {
 		time.Sleep(t)
 
 		s.Respond(ctx, http.StatusOK, fmt.Sprintf("waited %v", t), 0, nil, w)
+	}
+}
+
+// simulateError returns a 500
+func (s *Server) simulateError() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		span, ctx := ot.StartSpanFromContext(r.Context(), "simulateError")
+		defer span.Finish()
+
+		s.logger.Errorw("Error occured",
+			"error", errors.New("nasty error message"),
+		)
+
+		s.Respond(ctx, http.StatusInternalServerError, "simulated error", 0, nil, w)
 	}
 }
