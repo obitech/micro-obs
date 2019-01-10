@@ -81,7 +81,8 @@ func (s *Server) createRoutes() {
 		h = util.TracerMiddleware(h, route)
 
 		// Monitoring each request
-		promHandler := util.PrometheusMiddleware(h, route.Name, rm)
+		// TODO: pass proper handler
+		promHandler := util.PrometheusMiddleware(h, route.Pattern, rm)
 
 		s.router.
 			Methods(route.Method).

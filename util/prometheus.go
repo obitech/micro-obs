@@ -31,7 +31,7 @@ func NewRequestMetricHistogram(durationBuckets, responseSizeBuckets []float64) *
 		),
 		Duration: prometheus.NewHistogramVec(
 			prometheus.HistogramOpts{
-				Name:    "request_duration_seconds",
+				Name:    "http_request_duration_seconds",
 				Help:    "A histogram for latencies for requests.",
 				Buckets: durationBuckets,
 			},
@@ -39,7 +39,7 @@ func NewRequestMetricHistogram(durationBuckets, responseSizeBuckets []float64) *
 		),
 		ResponseSize: prometheus.NewHistogramVec(
 			prometheus.HistogramOpts{
-				Name:    "response_size_bytes",
+				Name:    "http_response_size_bytes",
 				Help:    "A histogram of response sizes for requests.",
 				Buckets: responseSizeBuckets,
 			},

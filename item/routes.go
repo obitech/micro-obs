@@ -11,14 +11,6 @@ var rm = util.NewRequestMetricHistogram(
 	[]float64{1, 5, 10, 50, 100},
 )
 
-// func init() {
-// 	prometheus.MustRegister(rm.InFlightGauge, rm.Counter, rm.Duration, rm.ResponseSize)
-// 	// prometheus.Register(rm.InFlightGauge)
-// 	// prometheus.Register(rm.Counter)
-// 	// prometheus.Register(rm.Duration)
-// 	// prometheus.Register(rm.ResponseSize)
-// }
-
 // Routes defines all HTTP routes, hanging off the main Server struct.
 // Like that, all routes have access to the Server's dependencies.
 func (s *Server) createRoutes() {
@@ -89,7 +81,8 @@ func (s *Server) createRoutes() {
 		h = util.TracerMiddleware(h, route)
 
 		// Monitoring each request
-		promHandler := util.PrometheusMiddleware(h, route.Name, rm)
+		// TODO: pass proper handler
+		promHandler := util.PrometheusMiddleware(h, route.Pattern, rm)
 
 		s.router.
 			Methods(route.Method).

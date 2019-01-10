@@ -2,7 +2,10 @@ package main
 
 import (
 	"fmt"
+	"math/rand"
+	"net/http"
 	"os"
+	"time"
 
 	"github.com/spf13/cobra"
 )
@@ -16,6 +19,7 @@ var (
 
 	itemAddr  = "http://localhost:8080"
 	orderAddr = "http://localhost:8090"
+	numReq    = 15
 )
 
 func init() {
@@ -40,4 +44,17 @@ func errExit(err error) {
 		fmt.Println(err)
 		os.Exit(1)
 	}
+}
+
+func sendRequest(addr string) {
+	rand.Seed(time.Now().UnixNano())
+	_, err := http.Get(addr)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	// Sleep between 0 and 100ms
+	t := rand.Float64()
+	time.Sleep(time.Duration(100*t) * time.Millisecond)
 }

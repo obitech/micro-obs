@@ -4,10 +4,8 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
-	"math/rand"
 	"net/http"
 	"os"
-	"time"
 
 	"github.com/spf13/cobra"
 )
@@ -40,6 +38,8 @@ var (
 )
 
 func init() {
+	itemRequestsCmd.Flags().IntVarP(&numReq, "count", "c", 15, "number of requests to send. 0 for unlimted.")
+
 	itemCmd.AddCommand(itemPingCmd)
 	itemCmd.AddCommand(itemDefaultCmd)
 	itemCmd.AddCommand(itemRequestsCmd)
@@ -92,16 +92,13 @@ func itemDefaultData(cmd *cobra.Command, args []string) {
 }
 
 func itemRequests(cmd *cobra.Command, args []string) {
-	rand.Seed(time.Now().UnixNano())
-	for i := 0; i < 15; i++ {
-		_, err := http.Get(fmt.Sprintf("%s/delay", itemAddr))
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
+	addr := fmt.Sprintf("%s/delay", itemAddr)
+	if numReq == 0 {
+		for {
+			sendRequest(addr)
 		}
-
-		// Sleep between 0 and 100ms
-		t := rand.Float64()
-		time.Sleep(time.Duration(100*t) * time.Millisecond)
+	}
+	for i := 0; i < numReq; i++ {
+		sendRequest(addr)
 	}
 }

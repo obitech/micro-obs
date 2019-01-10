@@ -24,6 +24,8 @@ var (
 )
 
 func init() {
+	requestsAllCmd.Flags().IntVarP(&numReq, "count", "c", 15, "number of requests to send. 0 for unlimited.")
+
 	allCmd.AddCommand(dataAllCmd)
 	allCmd.AddCommand(requestsAllCmd)
 }

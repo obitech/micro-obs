@@ -275,8 +275,8 @@ func (s *Server) delay() http.HandlerFunc {
 		span, ctx := ot.StartSpanFromContext(r.Context(), "delay")
 		defer span.Finish()
 
-		// Simulate delay between 10ms - 1500ms
-		t := time.Duration((rand.Float64()*1500)+10) * time.Millisecond
+		// Simulate delay between 30ms - 800ms
+		t := time.Duration((rand.Float64()*800)+30) * time.Millisecond
 
 		span.SetTag("wait", t)
 		s.logger.Debugw("Waiting",

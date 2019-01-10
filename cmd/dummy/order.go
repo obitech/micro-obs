@@ -38,6 +38,8 @@ var (
 )
 
 func init() {
+	orderRequestsCmd.Flags().IntVarP(&numReq, "count", "c", 15, "number of requests to send. 0 for unlimited.")
+
 	orderCmd.AddCommand(orderPingCmd)
 	orderCmd.AddCommand(orderDefaultCmd)
 	orderCmd.AddCommand(orderRequestsCmd)
@@ -93,11 +95,13 @@ func orderDefaultData(cmd *cobra.Command, args []string) {
 }
 
 func orderRequests(cmd *cobra.Command, args []string) {
-	for i := 0; i < 15; i++ {
-		_, err := http.Get(fmt.Sprintf("%s/delay", orderAddr))
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
+	addr := fmt.Sprintf("%s/delay", orderAddr)
+	if numReq == 0 {
+		for {
+			sendRequest(addr)
 		}
+	}
+	for i := 0; i < numReq; i++ {
+		sendRequest(addr)
 	}
 }
