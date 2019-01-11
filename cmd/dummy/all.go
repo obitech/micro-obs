@@ -17,14 +17,16 @@ var (
 	}
 
 	requestsAllCmd = &cobra.Command{
-		Use:   "requests",
-		Short: "send 50 requests to each service",
+		Use:   "requests [handler]",
+		Short: "sends requests to item and order service handler",
+		Args:  cobra.ExactArgs(1),
 		Run:   requestsAll,
 	}
 )
 
 func init() {
-	requestsAllCmd.Flags().IntVarP(&numReq, "count", "c", 15, "number of requests to send. 0 for unlimited.")
+	requestsAllCmd.Flags().IntVarP(&numReq, "number", "n", 15, "number of requests to sent (0 for unlimited)")
+	requestsAllCmd.Flags().IntVarP(&concReq, "concurrency", "c", 5, "number of requests to be sent concurrently")
 
 	allCmd.AddCommand(dataAllCmd)
 	allCmd.AddCommand(requestsAllCmd)

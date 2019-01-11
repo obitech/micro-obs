@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"math/rand"
 	"net/http"
 	"os"
 	"time"
@@ -20,6 +19,7 @@ var (
 	itemAddr  = "http://localhost:8080"
 	orderAddr = "http://localhost:8090"
 	numReq    = 15
+	concReq   = 5
 )
 
 func init() {
@@ -46,15 +46,33 @@ func errExit(err error) {
 	}
 }
 
-func sendRequest(addr string) {
-	rand.Seed(time.Now().UnixNano())
+func sendRequests(addr string) {
+	var ch chan bool
+	limit := make(chan bool, concReq)
+
+	if numReq == 0 {
+		for {
+			ch = make(chan bool)
+			limit <- true
+			go req(addr, ch, limit)
+		}
+	}
+	ch = make(chan bool, numReq)
+	for i := 0; i < numReq; i++ {
+		limit <- true
+		go req(addr, ch, limit)
+	}
+	<-ch
+}
+
+func req(addr string, ch chan bool, limit chan bool) {
 	_, err := http.Get(addr)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
 
-	// Sleep between 0 and 100ms
-	t := rand.Float64()
-	time.Sleep(time.Duration(100*t) * time.Millisecond)
+	time.Sleep(500 * time.Millisecond)
+	<-limit
+	ch <- true
 }

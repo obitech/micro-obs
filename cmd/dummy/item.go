@@ -31,14 +31,16 @@ var (
 	}
 
 	itemRequestsCmd = &cobra.Command{
-		Use:   "requests",
-		Short: "sends requests to delay endpoint",
+		Use:   "requests [handler]",
+		Short: "sends requests to a items service handler",
+		Args:  cobra.ExactArgs(1),
 		Run:   itemRequests,
 	}
 )
 
 func init() {
-	itemRequestsCmd.Flags().IntVarP(&numReq, "count", "c", 15, "number of requests to send. 0 for unlimted.")
+	itemRequestsCmd.Flags().IntVarP(&numReq, "number", "n", 15, "number of requests to send (0 for unlimted)")
+	itemRequestsCmd.Flags().IntVarP(&concReq, "concurrency", "c", 5, "number of requests to be sent concurrently")
 
 	itemCmd.AddCommand(itemPingCmd)
 	itemCmd.AddCommand(itemDefaultCmd)
@@ -92,13 +94,6 @@ func itemDefaultData(cmd *cobra.Command, args []string) {
 }
 
 func itemRequests(cmd *cobra.Command, args []string) {
-	addr := fmt.Sprintf("%s/delay", itemAddr)
-	if numReq == 0 {
-		for {
-			sendRequest(addr)
-		}
-	}
-	for i := 0; i < numReq; i++ {
-		sendRequest(addr)
-	}
+	addr := fmt.Sprintf("%s%s", itemAddr, args[0])
+	sendRequests(addr)
 }

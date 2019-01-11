@@ -7,12 +7,13 @@ ENV CGO_ENABLED=0
 WORKDIR /app
 
 COPY go.mod go.sum Makefile ./
+RUN go mod download
+
+COPY util/ util/
 COPY item/ item/
 COPY order/ order/
 COPY cmd/ cmd/
-COPY util/ util/
 
-RUN go mod download
 RUN make build
 FROM alpine:latest
 
