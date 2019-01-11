@@ -1,58 +1,92 @@
 package main
 
-var itemJSON = `[
-	{
-		"name": "banana",
-		"desc": "a yello fruit",
-		"qty": 5
-	},
-	{
-		"name": "water",
-		"desc": "bottles of water",
-		"qty": 10
-	},
-	{
-		"name": "apple",
-		"desc": "delicious",
-		"qty": 15
-	}
-]`
+import (
+	"bytes"
+	"fmt"
+	"io/ioutil"
+	"net/http"
+	"os"
 
-var orderJSON = []string{
-	`{
-	"items": [
-		{
-			"id": "BxYs9DiGaIMXuakIxX",
-			"qty": 2
-		},
-		{
-			"id": "GWkUo1hE3u7vTxR",
-			"qty": 8
+	"github.com/pkg/errors"
+	"github.com/spf13/cobra"
+)
+
+var dataCmd = &cobra.Command{
+	Use:   "data [target]",
+	Short: "populate data to a single or all services",
+	Long:  fmt.Sprintf("Sample data for item service: %s\nSample data for order service: %s", itemJSON, orderJSON),
+	Args: func(cmd *cobra.Command, args []string) error {
+		if len(args) != 1 {
+			return errors.New("requires one argument: [target]")
 		}
-	]
-}`,
-	`{
-	"items": [
-		{
-			"id": "BxYs9DiGaIMXuakIxX",
-			"qty": 4
-		},
-		{
-			"id": "GWkUo1hE3u7vTxR",
-			"qty": 5
-		},
-		{
-			"id": "JAQU27CQrTkQCNr",
-			"qty": 15
+
+		if _, prs := allowedTargets[args[0]]; !prs {
+			return errors.New(fmt.Sprintf("invalid argument, must be of [\"item\", \"order\", \"all\"]"))
 		}
-	]
-}`,
-	`{
-	"items": [
-		{
-			"id": "JAQU27CQrTkQCNr",
-			"qty": 3
+
+		return nil
+	},
+	Run: populateData,
+}
+
+func populateData(cmd *cobra.Command, args []string) {
+	var url string
+	var method string
+	var data []string
+
+	switch args[0] {
+	case "item":
+		method = "PUT"
+		url = fmt.Sprintf("%s/items", itemAddr)
+		data = itemJSON
+		defaultData(method, url, data)
+	case "order":
+		method = "POST"
+		url = fmt.Sprintf("%s/orders/create", orderAddr)
+		data = orderJSON
+		defaultData(method, url, data)
+	default:
+		method = "PUT"
+		url = fmt.Sprintf("%s/items", itemAddr)
+		data = itemJSON
+		defaultData(method, url, data)
+
+		method = "POST"
+		url = fmt.Sprintf("%s/orders/create", orderAddr)
+		data = orderJSON
+		defaultData(method, url, data)
+	}
+
+}
+
+func defaultData(method, url string, data []string) {
+	for _, js := range data {
+		buf := bytes.NewBuffer([]byte(js))
+
+		req, err := http.NewRequest(method, url, buf)
+		if err != nil {
+			errExit(err)
 		}
-	]
-}`,
+		req.Header.Add("Content-Type", "application/JSON; charset=UTF-8")
+
+		fmt.Printf("%s %s\n%s\n", method, url, js)
+
+		c := &http.Client{}
+		res, err := c.Do(req)
+		errExit(err)
+
+		b, err := ioutil.ReadAll(res.Body)
+		errExit(err)
+		defer res.Body.Close()
+
+		switch res.StatusCode {
+		case http.StatusOK:
+			fallthrough
+		case http.StatusCreated:
+			fmt.Printf("%s", string(b))
+		default:
+			fmt.Printf("Unexpected status code %d: %s", res.StatusCode, b)
+			os.Exit(1)
+		}
+	}
 }
