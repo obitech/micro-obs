@@ -2,6 +2,31 @@
 
 [![Build Status](https://travis-ci.org/obitech/micro-obs.svg?branch=master)](https://travis-ci.org/obitech/micro-obs) [![Go Report Card](https://goreportcard.com/badge/github.com/obitech/micro-obs)](https://goreportcard.com/report/github.com/obitech/micro-obs) [![](https://img.shields.io/docker/automated/jrottenberg/ffmpeg.svg)](https://hub.docker.com/r/obitech/micro-obs)
 
+## Contents
+
+  - [Overview](#overview)
+  - [Build it](#build-it)
+  - [Deploy it](#deploy-it)
+    - [Docker](#docker)
+    - [Kubernetes](#kubernetes)
+  - [Use it](#use-it)
+    - [Docker](#docker-1)
+      - [Preparation](#preparation)
+      - [Jaeger](#jaeger)
+      - [Prometheus](#prometheus)
+      - [ELK](#elk)
+    - [Kubernetes](#kubernetes-1)
+      - [Preparation](#preparation)
+      - [Jaeger](#jaeger-1)
+      - [Prometheus](#prometheus-1)
+      - [ELK](#elk-1)
+  - [item](#item)
+  - [order](#order)
+  - [util](#util)
+  - [License](#license)
+
+## Overview
+
 Example of instrumenting a Go microservices application:
 
 - Structured logging via [zap](https://github.com/uber-go/zap)
@@ -148,7 +173,7 @@ Jaeger Query|http://localhost:16686/
 Prometheus|http://localhost:9090/
 Grafana|http://localhost:3000/
 
-#### Preparations
+#### Preparation
 
 Create some dummy data:
 
