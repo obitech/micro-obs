@@ -11,11 +11,11 @@ import (
 
 var (
 	requestsCmd = &cobra.Command{
-		Use:   "requests [target] [handler]",
-		Short: "sends requests to a handler of a single or all services",
+		Use:   "requests [target] [handlers]",
+		Short: "sends requests to handlers of a single or all services",
 		Args: func(cmd *cobra.Command, args []string) error {
-			if len(args) != 2 {
-				return errors.New("requires two arguments: [target] [handler]")
+			if len(args) < 2 {
+				return errors.New("requires two arguments: [target] [handlers]")
 			}
 
 			if _, prs := allowedTargets[args[0]]; !prs {
@@ -28,38 +28,44 @@ var (
 	}
 	numReq  = 15
 	concReq = 5
+	wait    = 500
 )
 
 func init() {
-	requestsCmd.Flags().IntVarP(&numReq, "number", "n", 15, "number of requests to sent (0 for unlimited)")
-	requestsCmd.Flags().IntVarP(&concReq, "concurrency", "c", 1, "number of requests to be sent concurrently")
+	requestsCmd.Flags().IntVarP(&numReq, "number", "n", numReq, "number of requests to sent (0 for unlimited)")
+	requestsCmd.Flags().IntVarP(&concReq, "concurrency", "c", concReq, "number of requests to be sent concurrently")
+	requestsCmd.Flags().IntVarP(&wait, "wait", "w", wait, "time to wait between requests in ms")
 }
 
+// TODO: worker pattern
 func sendRequests(cmd *cobra.Command, args []string) {
 	var url string
-
+	var ch chan bool
 	switch args[0] {
 	case "item":
-		url = fmt.Sprintf("%s%s", itemAddr, args[1])
-		concReqs(url)
+		for _, handler := range args[1:] {
+			url = fmt.Sprintf("%s%s", itemAddr, handler)
+			concReqs(url)
+		}
 	case "order":
-		url = fmt.Sprintf("%s%s", orderAddr, args[1])
-		concReqs(url)
+		for _, handler := range args[1:] {
+			url = fmt.Sprintf("%s%s", orderAddr, handler)
+			concReqs(url)
+		}
 	default:
-		ch := make(chan bool, 2)
-
-		url = fmt.Sprintf("%s%s", itemAddr, args[1])
-		go func() {
-			concReqs(url)
-			ch <- true
-		}()
-
-		url = fmt.Sprintf("%s%s", orderAddr, args[1])
-		go func() {
-			concReqs(url)
-			ch <- true
-		}()
-
+		ch = make(chan bool, 2*len(args[1:]))
+		for _, handler := range args[1:] {
+			url = fmt.Sprintf("%s%s", itemAddr, handler)
+			go func() {
+				concReqs(url)
+				ch <- true
+			}()
+			url = fmt.Sprintf("%s%s", orderAddr, handler)
+			go func() {
+				concReqs(url)
+				ch <- true
+			}()
+		}
 		<-ch
 	}
 }
@@ -88,7 +94,7 @@ func req(url string, ch chan bool, limit chan bool) {
 	_, err := http.Get(url)
 	errExit(err)
 
-	time.Sleep(500 * time.Millisecond)
+	time.Sleep(time.Duration(wait) * time.Millisecond)
 	<-limit
 	ch <- true
 }
