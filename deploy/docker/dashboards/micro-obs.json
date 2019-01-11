@@ -52,7 +52,7 @@
   "gnetId": null,
   "graphTooltip": 0,
   "id": null,
-  "iteration": 1547134169922,
+  "iteration": 1547222327427,
   "links": [],
   "panels": [
     {
@@ -372,7 +372,7 @@
         }
       ],
       "thresholds": "",
-      "title": "Total API Requests",
+      "title": "API Requests",
       "type": "singlestat",
       "valueFontSize": "80%",
       "valueMaps": [
@@ -935,7 +935,7 @@
       },
       "yaxes": [
         {
-          "format": "s",
+          "format": "reqps",
           "label": null,
           "logBase": 1,
           "max": null,
@@ -1025,7 +1025,7 @@
       },
       "yaxes": [
         {
-          "format": "s",
+          "format": "reqps",
           "label": null,
           "logBase": 1,
           "max": null,
@@ -1115,7 +1115,7 @@
       },
       "yaxes": [
         {
-          "format": "s",
+          "format": "reqps",
           "label": null,
           "logBase": 1,
           "max": null,
@@ -1405,7 +1405,7 @@
       }
     }
   ],
-  "refresh": "30s",
+  "refresh": "10s",
   "schemaVersion": 16,
   "style": "dark",
   "tags": [],
@@ -1436,7 +1436,7 @@
     ]
   },
   "time": {
-    "from": "now-5m",
+    "from": "now-1m",
     "to": "now"
   },
   "timepicker": {
@@ -1467,5 +1467,5 @@
   "timezone": "",
   "title": "micro-obs",
   "uid": "9GBgQq8iz",
-  "version": 10
+  "version": 13
 }

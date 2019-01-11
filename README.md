@@ -82,16 +82,6 @@ cd deploy/docker
 docker-compose up -d
 ```
 
-Service|Location
----|---
-item API|http://localhost:8080/
-order API|http://localhost:8090/
-Jaeger Query|http://localhost:16686/
-Prometheus|http://localhost:9090/
-Grafana|http://localhost:3000/
-
-Some sample Grafana dashboards can be found in `deploy/docker/dashboards`
-
 ### Kubernetes
 
 Make sure [Docker](https://docs.docker.com/install/) and Kubernets (via [Minikube](https://github.com/kubernetes/minikube) or [microk8s](https://microk8s.io), for example) are installed.
@@ -140,6 +130,58 @@ redis-item-5bcf99c9f7-zdf2r    2/2       Running   0          1m
 redis-order-68869c7986-4s7w2   2/2       Running   0          1m
 ```
 
+## Use it
+
+First build the `dummy` CLI application:
+
+```make
+make build-dummy
+```
+
+### Docker
+
+Service|Location
+---|---
+item API|http://localhost:8080/
+order API|http://localhost:8090/
+Jaeger Query|http://localhost:16686/
+Prometheus|http://localhost:9090/
+Grafana|http://localhost:3000/
+
+#### Preparations
+
+Create some dummy data:
+
+```
+./bin/dummy data all
+```
+
+#### Jaeger
+
+After creating the dummy data, those transactions can be found in the Jaeger Query UI at http://localhost:16686:
+
+![Jaeger UI start screen](static/jaeger1.PNG)
+![Jaeger sample trace](static/jaeger2.PNG)
+
+#### Prometheus
+
+Send some dummy requests:
+
+```
+./bin/dummy requests all / /aksdasd /items /orders /delay /error -n 15
+./bin/dummy requests all /delay -n 50
+```
+
+Start Grafana and upload the `deploy/docker/dashboards/micro-obs.json` dashboard:
+
+![Grafana micro-obs dashboard example](static/grafana2.png)
+
+#### ELK
+
+TODO
+
+### Kubernetes
+
 Service|Location|Internal FQDN
 ---|---|---
 item API|http://localhost:30808|http://item.micro-obs.service.cluster.local:8080
@@ -153,36 +195,30 @@ ElasticSearch|.|http://elasticsearch.monitoring.svc.cluster.local:9200
 Kibana|http://localhost:30601|.
 Mailhog|http://localhost:32025|mailhog.svc.cluster.local:1025
 
-## Use it
+#### Preparation
 
-### Preparation
-
-This part assumes you have succsessfully deployed the application into a Kubernetes cluster and a working Go environment.
-
-First build the `dummy` CLI application:
-
-```make
-make build-dummy
-```
-
-Use it to create some dummy data:
+Create some dummy data:
 
 ```
-./bin/dummy default -i http://localhost:30808 -o http://localhost:30809
+./bin/dummy data all -i http://localhost:30808 -o http://localhost:30809
 ```
 
-### Jaeger
+#### Jaeger
 
 After creating the dummy data, those transactions can be found in the Jaeger Query UI at http://localhost:30686:
 
 ![Jaeger UI start screen](static/jaeger1.PNG)
 ![Jaeger sample trace](static/jaeger2.PNG)
 
-### Prometheus
+#### Prometheus
 
 Both the Kubernetes' internal components as well as the `micro-obs` application is being monitored by Prometheus. Some pre-installed Dashboards can be found in Grafana via http://localhost:30300 (default login is admin:admin):
 
 ![Grafana Kubernetes dashboard](static/grafana1.PNG)
+
+#### ELK
+
+TODO
 
 ## [item](https://godoc.org/github.com/obitech/micro-obs/item)
 [![godoc reference for item](https://img.shields.io/badge/godoc-reference-blue.svg)](https://godoc.org/github.com/obitech/micro-obs/item) 

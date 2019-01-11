@@ -29,6 +29,7 @@ var dataCmd = &cobra.Command{
 	Run: populateData,
 }
 
+// TODO: number of times data should be populated, concurrently
 func populateData(cmd *cobra.Command, args []string) {
 	var url string
 	var method string

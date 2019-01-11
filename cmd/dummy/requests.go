@@ -40,7 +40,6 @@ func init() {
 // TODO: worker pattern
 func sendRequests(cmd *cobra.Command, args []string) {
 	var url string
-	var ch chan bool
 	switch args[0] {
 	case "item":
 		for _, handler := range args[1:] {
@@ -52,49 +51,42 @@ func sendRequests(cmd *cobra.Command, args []string) {
 			url = fmt.Sprintf("%s%s", orderAddr, handler)
 			concReqs(url)
 		}
-	default:
-		ch = make(chan bool, 2*len(args[1:]))
+	case "all":
 		for _, handler := range args[1:] {
 			url = fmt.Sprintf("%s%s", itemAddr, handler)
-			go func() {
-				concReqs(url)
-				ch <- true
-			}()
+			concReqs(url)
+
 			url = fmt.Sprintf("%s%s", orderAddr, handler)
-			go func() {
-				concReqs(url)
-				ch <- true
-			}()
+			concReqs(url)
 		}
-		<-ch
 	}
 }
 
 func concReqs(url string) {
-	var ch chan bool
+	var done chan bool
 	limit := make(chan bool, concReq)
 
 	if numReq == 0 {
 		for {
-			ch = make(chan bool)
+			done = make(chan bool)
 			limit <- true
-			go req(url, ch, limit)
+			go req(url, done, limit)
 		}
 	}
 
-	ch = make(chan bool, numReq)
+	done = make(chan bool, numReq)
 	for i := 0; i < numReq; i++ {
 		limit <- true
-		go req(url, ch, limit)
+		go req(url, done, limit)
 	}
-	<-ch
+	<-done
 }
 
-func req(url string, ch chan bool, limit chan bool) {
+func req(url string, done chan bool, limit chan bool) {
 	_, err := http.Get(url)
 	errExit(err)
 
 	time.Sleep(time.Duration(wait) * time.Millisecond)
 	<-limit
-	ch <- true
+	done <- true
 }
