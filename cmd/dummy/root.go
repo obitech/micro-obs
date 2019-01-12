@@ -16,6 +16,7 @@ var (
 	allowedTargets = map[string]bool{"item": true, "order": true, "all": true}
 	itemAddr       = "http://localhost:8080"
 	orderAddr      = "http://localhost:8090"
+	verbose        bool
 )
 
 func init() {
@@ -24,6 +25,7 @@ func init() {
 
 	rootCmd.PersistentFlags().StringVarP(&itemAddr, "item-addr", "i", itemAddr, "address of the item service")
 	rootCmd.PersistentFlags().StringVarP(&orderAddr, "order-addr", "o", orderAddr, "address of the order service")
+	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "verbose output")
 }
 
 // Execute runs the cobra rootCmd.
@@ -38,5 +40,12 @@ func errExit(err error) {
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
+	}
+}
+
+// Verbose logging
+func vl(str string) {
+	if verbose {
+		fmt.Print(str)
 	}
 }

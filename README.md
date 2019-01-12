@@ -193,8 +193,7 @@ After creating the dummy data, those transactions can be found in the Jaeger Que
 Send some dummy requests:
 
 ```
-./bin/dummy requests all / /aksdasd /items /orders /delay /error -n 15
-./bin/dummy requests all /delay -n 50
+./bin/dummy requests all / /aksdasd /items /orders /delay /error -n 100 -c 5 
 ```
 
 Start Grafana and upload the `deploy/docker/dashboards/micro-obs.json` dashboard:
@@ -203,7 +202,9 @@ Start Grafana and upload the `deploy/docker/dashboards/micro-obs.json` dashboard
 
 #### ELK
 
-TODO
+After sending some requests, logs can be queried via Kibana running on http://localhost:5601:
+
+![Kibana micro-obs error query](static/kibana1.png)
 
 ### Kubernetes
 
@@ -237,7 +238,7 @@ After creating the dummy data, those transactions can be found in the Jaeger Que
 
 #### Prometheus
 
-Both the Kubernetes' internal components as well as the `micro-obs` application is being monitored by Prometheus. Some pre-installed Dashboards can be found in Grafana via http://localhost:30300 (default login is admin:admin):
+Both the Kubernetes' internal components as well as the `micro-obs` application (TODO) is being monitored by Prometheus. Some pre-installed Dashboards can be found in Grafana via http://localhost:30300 (default login is admin:admin):
 
 ![Grafana Kubernetes dashboard](static/grafana1.PNG)
 

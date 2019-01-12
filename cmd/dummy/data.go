@@ -70,7 +70,7 @@ func defaultData(method, url string, data []string) {
 		}
 		req.Header.Add("Content-Type", "application/JSON; charset=UTF-8")
 
-		fmt.Printf("%s %s\n%s\n", method, url, js)
+		vl(fmt.Sprintf("%s %s\n%s\n", method, url, js))
 
 		c := &http.Client{}
 		res, err := c.Do(req)

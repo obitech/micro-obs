@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"math/rand"
 	"net/http"
 	"time"
 
@@ -24,69 +25,99 @@ var (
 
 			return nil
 		},
-		Run: sendRequests,
+		Run: sendRequest,
 	}
 	numReq  = 15
-	concReq = 5
+	concReq = 2
 	wait    = 500
 )
 
 func init() {
-	requestsCmd.Flags().IntVarP(&numReq, "number", "n", numReq, "number of requests to sent (0 for unlimited)")
+	requestsCmd.Flags().IntVarP(&numReq, "number", "n", numReq, "number of requests to sent")
 	requestsCmd.Flags().IntVarP(&concReq, "concurrency", "c", concReq, "number of requests to be sent concurrently")
 	requestsCmd.Flags().IntVarP(&wait, "wait", "w", wait, "time to wait between requests in ms")
 }
 
-// TODO: worker pattern
-func sendRequests(cmd *cobra.Command, args []string) {
-	var url string
+func buildURLs(addr string, handlers ...string) []string {
+	urls := []string{}
+
+	// Total requests = -n * (number of handlers)
+	for _, handler := range handlers {
+		for j := 0; j < numReq; j++ {
+			urls = append(urls, fmt.Sprintf("%s%s", addr, handler))
+		}
+	}
+
+	// Shuffle slice so requests will be evenly distributed
+	rand.Shuffle(len(urls), func(i, j int) {
+		urls[i], urls[j] = urls[j], urls[i]
+	})
+	return urls
+}
+
+func sendRequest(cmd *cobra.Command, args []string) {
 	switch args[0] {
 	case "item":
-		for _, handler := range args[1:] {
-			url = fmt.Sprintf("%s%s", itemAddr, handler)
-			concReqs(url)
+		handlers := buildURLs(itemAddr, args[1:]...)
+		done := distributeWork(handlers...)
+		for i := 0; i < len(handlers); i++ {
+			<-done
 		}
+
 	case "order":
-		for _, handler := range args[1:] {
-			url = fmt.Sprintf("%s%s", orderAddr, handler)
-			concReqs(url)
+		handlers := buildURLs(orderAddr, args[1:]...)
+		done := distributeWork(handlers...)
+		for i := 0; i < len(handlers); i++ {
+			<-done
 		}
+
 	case "all":
-		for _, handler := range args[1:] {
-			url = fmt.Sprintf("%s%s", itemAddr, handler)
-			concReqs(url)
+		handlers := []string{}
+		handlers = append(handlers, buildURLs(itemAddr, args[1:]...)...)
+		handlers = append(handlers, buildURLs(orderAddr, args[1:]...)...)
+		rand.Shuffle(len(handlers), func(i, j int) {
+			handlers[i], handlers[j] = handlers[j], handlers[i]
+		})
 
-			url = fmt.Sprintf("%s%s", orderAddr, handler)
-			concReqs(url)
+		done := distributeWork(handlers...)
+		for j := 0; j < numReq*len(handlers); j++ {
+			<-done
 		}
 	}
 }
 
-func concReqs(url string) {
-	var done chan bool
-	limit := make(chan bool, concReq)
+func distributeWork(urls ...string) <-chan bool {
+	jobQ := make(chan string, numReq)
+	numJobs := numReq * len(urls)
+	jobsDone := make(chan bool, numJobs)
 
-	if numReq == 0 {
-		for {
-			done = make(chan bool)
-			limit <- true
-			go req(url, done, limit)
-		}
+	// Spawn -c workers
+	for w := 0; w < concReq; w++ {
+		go workerRequest(w, jobQ, jobsDone)
 	}
 
-	done = make(chan bool, numReq)
-	for i := 0; i < numReq; i++ {
-		limit <- true
-		go req(url, done, limit)
+	// Send requests to jobQ channel
+	for _, url := range urls {
+		jobQ <- url
 	}
-	<-done
+
+	// Work assigned, close jobQ channel
+	close(jobQ)
+
+	return jobsDone
 }
 
-func req(url string, done chan bool, limit chan bool) {
-	_, err := http.Get(url)
-	errExit(err)
+func workerRequest(id int, jobs <-chan string, jobsDone chan<- bool) {
+	// Grab jobs from channel and perform request
+	for url := range jobs {
+		start := time.Now()
+		vl(fmt.Sprintf("Worker %d -> %s\n", id, url))
 
-	time.Sleep(time.Duration(wait) * time.Millisecond)
-	<-limit
-	done <- true
+		_, err := http.Get(url)
+		errExit(err)
+		time.Sleep(time.Duration(wait) * time.Millisecond)
+
+		vl(fmt.Sprintf("Worker %d <- Work to %s completed after %v\n", id, url, time.Since(start)))
+		jobsDone <- true
+	}
 }
