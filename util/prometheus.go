@@ -50,6 +50,7 @@ func NewRequestMetricHistogram(durationBuckets, responseSizeBuckets []float64) *
 
 // PrometheusMiddleware wraps a request for monitoring via Prometheus.
 func PrometheusMiddleware(h http.Handler, handler string, rm *RequestMetricHistogram) http.Handler {
+	// TODO: capture return code & handler for rm.Counter
 	promHandler := promhttp.InstrumentHandlerInFlight(
 		rm.InFlightGauge,
 		promhttp.InstrumentHandlerDuration(

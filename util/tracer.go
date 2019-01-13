@@ -55,6 +55,8 @@ func TracerMiddleware(inner http.Handler, route Route) http.HandlerFunc {
 		for k, v := range r.Header {
 			span.SetTag(fmt.Sprintf("header.%s", k), v)
 		}
+
+		// TODO: capture return code as tag in root trace
 		span.SetTag("method", r.Method)
 		span.SetTag("url", r.URL.Path)
 		span.SetTag("handler", route.Name)

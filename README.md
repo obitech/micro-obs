@@ -183,7 +183,7 @@ Create some dummy data:
 
 #### Jaeger
 
-After creating the dummy data, those transactions can be found in the Jaeger Query UI at http://localhost:16686:
+After creating dummy data, those transactions can be found in the Jaeger Query UI at http://localhost:16686:
 
 ![Jaeger UI start screen](static/jaeger1.PNG)
 ![Jaeger sample trace](static/jaeger2.PNG)
