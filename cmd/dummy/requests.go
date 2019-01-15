@@ -52,43 +52,44 @@ func buildURLs(addr string, handlers ...string) []string {
 	rand.Shuffle(len(urls), func(i, j int) {
 		urls[i], urls[j] = urls[j], urls[i]
 	})
+
 	return urls
 }
 
 func sendRequest(cmd *cobra.Command, args []string) {
 	switch args[0] {
 	case "item":
-		handlers := buildURLs(itemAddr, args[1:]...)
-		done := distributeWork(handlers...)
-		for i := 0; i < len(handlers); i++ {
+		urls := buildURLs(itemAddr, args[1:]...)
+		done := distributeWork(urls...)
+		for i := 0; i < len(urls); i++ {
 			<-done
 		}
 
 	case "order":
-		handlers := buildURLs(orderAddr, args[1:]...)
-		done := distributeWork(handlers...)
-		for i := 0; i < len(handlers); i++ {
+		urls := buildURLs(orderAddr, args[1:]...)
+		done := distributeWork(urls...)
+		for i := 0; i < len(urls); i++ {
 			<-done
 		}
 
 	case "all":
-		handlers := []string{}
-		handlers = append(handlers, buildURLs(itemAddr, args[1:]...)...)
-		handlers = append(handlers, buildURLs(orderAddr, args[1:]...)...)
-		rand.Shuffle(len(handlers), func(i, j int) {
-			handlers[i], handlers[j] = handlers[j], handlers[i]
+		urls := []string{}
+		urls = append(urls, buildURLs(itemAddr, args[1:]...)...)
+		urls = append(urls, buildURLs(orderAddr, args[1:]...)...)
+		rand.Shuffle(len(urls), func(i, j int) {
+			urls[i], urls[j] = urls[j], urls[i]
 		})
 
-		done := distributeWork(handlers...)
-		for j := 0; j < numReq*len(handlers); j++ {
+		done := distributeWork(urls...)
+		for j := 0; j < len(urls); j++ {
 			<-done
 		}
 	}
 }
 
 func distributeWork(urls ...string) <-chan bool {
-	jobQ := make(chan string, numReq)
-	numJobs := numReq * len(urls)
+	numJobs := len(urls)
+	jobQ := make(chan string, numJobs)
 	jobsDone := make(chan bool, numJobs)
 
 	// Spawn -c workers
