@@ -60,14 +60,14 @@ func sendRequest(cmd *cobra.Command, args []string) {
 	switch args[0] {
 	case "item":
 		urls := buildURLs(itemAddr, args[1:]...)
-		done := distributeWork(urls...)
+		done := distributeRequests(urls...)
 		for i := 0; i < len(urls); i++ {
 			<-done
 		}
 
 	case "order":
 		urls := buildURLs(orderAddr, args[1:]...)
-		done := distributeWork(urls...)
+		done := distributeRequests(urls...)
 		for i := 0; i < len(urls); i++ {
 			<-done
 		}
@@ -80,14 +80,14 @@ func sendRequest(cmd *cobra.Command, args []string) {
 			urls[i], urls[j] = urls[j], urls[i]
 		})
 
-		done := distributeWork(urls...)
+		done := distributeRequests(urls...)
 		for j := 0; j < len(urls); j++ {
 			<-done
 		}
 	}
 }
 
-func distributeWork(urls ...string) <-chan bool {
+func distributeRequests(urls ...string) <-chan bool {
 	numJobs := len(urls)
 	jobQ := make(chan string, numJobs)
 	jobsDone := make(chan bool, numJobs)
