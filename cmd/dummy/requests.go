@@ -13,14 +13,21 @@ import (
 var (
 	requestsCmd = &cobra.Command{
 		Use:   "requests [target] [handlers]",
-		Short: "sends requests to handlers of a single or all services",
+		Short: "sends requests to handlers of a single or all services (targets)",
 		Args: func(cmd *cobra.Command, args []string) error {
 			if len(args) < 2 {
 				return errors.New("requires two arguments: [target] [handlers]")
 			}
 
 			if _, prs := allowedTargets[args[0]]; !prs {
-				return errors.New(fmt.Sprintf("invalid argument, must be of [\"item\", \"order\", \"all\"]"))
+				// Format allowed targets
+				targets := make([]string, len(allowedTargets))
+				i := 0
+				for k := range allowedTargets {
+					targets[i] = k
+					i++
+				}
+				return errors.New(fmt.Sprintf("invalid argument, must be of %v", targets))
 			}
 
 			return nil
@@ -38,10 +45,12 @@ func init() {
 	requestsCmd.Flags().IntVarP(&wait, "wait", "w", wait, "time to wait between requests in ms")
 }
 
+// buildURLS returns a shuffled slice of strings where the length is equal to the total number of requests.
+// Each string is an URL and the slice represents the total amount of work to be handled by workers.
 func buildURLs(addr string, handlers ...string) []string {
 	urls := []string{}
 
-	// Total requests = -n * (number of handlers)
+	// Each handler is a single request to be made and gets added to the output slice
 	for _, handler := range handlers {
 		for j := 0; j < numReq; j++ {
 			urls = append(urls, fmt.Sprintf("%s%s", addr, handler))
@@ -56,6 +65,7 @@ func buildURLs(addr string, handlers ...string) []string {
 	return urls
 }
 
+// sendRequest creates and distributes work according to passed arguments.
 func sendRequest(cmd *cobra.Command, args []string) {
 	switch args[0] {
 	case "item":
@@ -87,6 +97,7 @@ func sendRequest(cmd *cobra.Command, args []string) {
 	}
 }
 
+// distributeRequests takes URLs as work, spwans workers according to flags and dsitributes work to them.
 func distributeRequests(urls ...string) <-chan bool {
 	numJobs := len(urls)
 	jobQ := make(chan string, numJobs)
@@ -108,6 +119,8 @@ func distributeRequests(urls ...string) <-chan bool {
 	return jobsDone
 }
 
+// workerRequest listenes on a passed channel for work, processes it, waits according to flags and then
+// confirms job completion on a different chanel.
 func workerRequest(id int, jobs <-chan string, jobsDone chan<- bool) {
 	// Grab jobs from channel and perform request
 	for url := range jobs {

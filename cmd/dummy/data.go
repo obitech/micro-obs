@@ -86,19 +86,16 @@ func distributeWorkData(dr dataRequest) {
 	jobQ := make(chan dataRequest, numDataReq)
 	jobsDone := make(chan bool, numDataReq)
 
-	// Spwan -c workers
 	for w := 0; w < concDataReq; w++ {
 		go workerData(w, jobQ, jobsDone)
 	}
 
-	// Send -n data to jobQ channel
 	for j := 0; j < numDataReq; j++ {
 		jobQ <- dr
 	}
 
 	close(jobQ)
 
-	// Retrieve
 	for j := 0; j < numDataReq; j++ {
 		<-jobsDone
 	}
@@ -107,7 +104,6 @@ func distributeWorkData(dr dataRequest) {
 func workerData(id int, jobs <-chan dataRequest, jobsDone chan<- bool) {
 	for dr := range jobs {
 		start := time.Now()
-		vl(fmt.Sprintf("Worker %d -> %s\n", id, dr.url))
 		for _, js := range dr.data {
 			buf := bytes.NewBuffer([]byte(js))
 			req, err := http.NewRequest(dr.method, dr.url, buf)
@@ -116,7 +112,7 @@ func workerData(id int, jobs <-chan dataRequest, jobsDone chan<- bool) {
 			}
 			req.Header.Add("Content-Type", "application/JSON; charset=UTF-8")
 
-			vl(fmt.Sprintf("%s %s\n%s\n", dr.method, dr.url, dr.data))
+			vl(fmt.Sprintf("Worker %d -> %s %s\n%s\n", id, dr.method, dr.url, dr.data))
 
 			c := &http.Client{}
 			res, err := c.Do(req)
