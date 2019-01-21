@@ -1,11 +1,6 @@
 # ------------------- Grafana Dashboards ConfigMapList ------------------- #
 apiVersion: v1
 kind: ConfigMapList
-metadata: 
-  name: grafana-dashboards
-  namespace: monitoring
-  labels:
-    app: grafana
 items:
 - kind: ConfigMap
   apiVersion: v1
