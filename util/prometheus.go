@@ -20,7 +20,7 @@ func NewRequestMetricHistogram(durationBuckets, responseSizeBuckets []float64) *
 	return &RequestMetricHistogram{
 		InFlightGauge: prometheus.NewGauge(prometheus.GaugeOpts{
 			Name: "in_flight_requests",
-			Help: "A gauge of requests currently being served by the wrapped handler.",
+			Help: "A gauge of requests currently being served.",
 		}),
 		Counter: prometheus.NewCounterVec(
 			prometheus.CounterOpts{

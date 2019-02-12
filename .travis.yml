@@ -17,6 +17,8 @@ jobs:
       script: 
         - make build
         - ./bin/item --help
+        - ./bin/order --help
+        - ./bin/dummy --help
     - stage: "Build"
       name: "Building & pushing Docker image"
       script: 

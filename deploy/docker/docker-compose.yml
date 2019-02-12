@@ -27,7 +27,6 @@ services:
       - "./data/grafana:/var/lib/grafana"
     restart: always
 
-
   elasticsearch:
     container_name: micro-obs-elasticsearch
     image: elastic/elasticsearch:6.5.4

@@ -3,7 +3,7 @@ package main
 var itemJSON = []string{`[
 	{
 		"name": "banana",
-		"desc": "a yello fruit",
+		"desc": "a yellow fruit",
 		"qty": 5
 	},
 	{
