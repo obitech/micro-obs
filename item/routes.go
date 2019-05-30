@@ -74,6 +74,9 @@ func (s *Server) createRoutes() {
 	for _, route := range routes {
 		h := route.HandlerFunc
 
+		// Assign requestID to each request
+		h = util.AssignRequestID(h, s.logger)
+
 		// Logging each request
 		h = util.LoggerMiddleware(h, s.logger)
 
