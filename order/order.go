@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/obitech/micro-obs/item"
+	"github.com/obitech/micro-obs/util"
 	ot "github.com/opentracing/opentracing-go"
 	"github.com/opentracing/opentracing-go/ext"
 	"github.com/pkg/errors"
@@ -137,6 +138,10 @@ func (s *Server) getItem(ctx context.Context, itemID string) (*Item, error) {
 	// Create item service request
 	url := fmt.Sprintf("%s/items/%s", s.itemService, itemID)
 	req, err := http.NewRequest("GET", url, nil)
+
+	// Inject requestID
+	reqID := util.RequestIDFromContext(ctx)
+	req.Header.Add("X-Request-ID", reqID)
 
 	// Inect tracer
 	ext.SpanKindRPCClient.Set(span)

@@ -52,6 +52,7 @@ func TracerMiddleware(inner http.Handler, route Route) http.HandlerFunc {
 			defer span.Finish()
 			ctx = ot.ContextWithSpan(r.Context(), span)
 		}
+
 		for k, v := range r.Header {
 			span.SetTag(fmt.Sprintf("header.%s", k), v)
 		}

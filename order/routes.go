@@ -74,14 +74,14 @@ func (s *Server) createRoutes() {
 	for _, route := range routes {
 		h := route.HandlerFunc
 
-		// Assign requestID to each request
-		h = util.AssignRequestID(h, s.logger)
+		// Tracing each request
+		h = util.TracerMiddleware(h, route)
 
 		// Logging each request
 		h = util.LoggerMiddleware(h, s.logger)
 
-		// Tracing each request
-		h = util.TracerMiddleware(h, route)
+		// Assign requestID to each request
+		h = util.AssignRequestID(h, s.logger)
 
 		// Monitoring each request
 		// TODO: pass proper handler

@@ -17,7 +17,8 @@ func RequestIDFromContext(ctx context.Context) string {
 }
 
 // AssignRequestID checks the X-Request-ID Header if an ID is present and adds it to the
-// request context. If not present, will create a Request ID and add it to the context
+// request context. If not present, will create a Request ID and add it to the
+// request context and headers.
 func AssignRequestID(inner http.Handler, logger *Logger) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		reqID := r.Header.Get("X-Request-ID")
@@ -28,11 +29,13 @@ func AssignRequestID(inner http.Handler, logger *Logger) http.HandlerFunc {
 			logger.Debugw("assigned new requestID",
 				"requestID", reqID,
 			)
+			r.Header.Add("X-Request-ID", reqID)
 		} else {
 			logger.Debugw("found existing requestID",
 				"requestID", reqID,
 			)
 		}
+		w.Header().Set("X-Request-ID", reqID)
 		inner.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
