@@ -1,7 +1,6 @@
 package util
 
 import (
-	"fmt"
 	"net/http"
 	"time"
 
@@ -62,7 +61,6 @@ func NewLogger(level, serviceName string) (*Logger, error) {
 func LoggerMiddleware(inner http.Handler, logger *Logger) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
-		fmt.Printf("Request headers: %v", r.Header)
 		logger.Debugw("request received",
 			"address", r.RemoteAddr,
 			"method", r.Method,
