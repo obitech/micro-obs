@@ -61,19 +61,27 @@ func NewLogger(level, serviceName string) (*Logger, error) {
 func LoggerMiddleware(inner http.Handler, logger *Logger) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
-		logger.Debugw("request received",
+		log := RequestIDLogger(logger, r)
+		log.Debugw("request received",
 			"address", r.RemoteAddr,
 			"method", r.Method,
 			"path", r.RequestURI,
 		)
 		inner.ServeHTTP(w, r)
-		logger.Infow("request completed",
+		log.Infow("request completed",
 			"address", r.RemoteAddr,
 			"method", r.Method,
 			"path", r.RequestURI,
 			"duration", time.Since(start),
 		)
 	})
+}
+
+// RequestIDLogger returns a child logger with the Request ID added as a field.
+func RequestIDLogger(l *Logger, r *http.Request) *Logger {
+	reqID := RequestIDFromContext(r.Context())
+	log := l.logger.With("requestID", reqID)
+	return &Logger{log}
 }
 
 // Info uses fmt.Sprint to log a templated message.

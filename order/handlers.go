@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
+	"github.com/obitech/micro-obs/util"
 	ot "github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 )
@@ -29,6 +30,8 @@ func (s *Server) pong() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		span, ctx := ot.StartSpanFromContext(r.Context(), "pong")
 		defer span.Finish()
+		log := util.RequestIDLogger(s.logger, r)
+		log.Info("pong")
 		s.Respond(ctx, http.StatusOK, "pong", 0, nil, w)
 	}
 }
