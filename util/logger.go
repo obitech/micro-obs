@@ -1,6 +1,7 @@
 package util
 
 import (
+	"context"
 	"net/http"
 	"time"
 
@@ -77,9 +78,18 @@ func LoggerMiddleware(inner http.Handler, logger *Logger) http.HandlerFunc {
 	})
 }
 
-// RequestIDLogger returns a child logger with the Request ID added as a field.
+// RequestIDLogger extracts the requestID from the request context, adds it to
+// a child logger and then returns the child logger.
 func RequestIDLogger(l *Logger, r *http.Request) *Logger {
 	reqID := RequestIDFromContext(r.Context())
+	log := l.logger.With("requestID", reqID)
+	return &Logger{log}
+}
+
+// RequestIDLoggerFromContext extract the requestID from a passed context, adds
+// it to a child logger and then returns the child logger.
+func RequestIDLoggerFromContext(ctx context.Context, l *Logger) *Logger {
+	reqID := RequestIDFromContext(ctx)
 	log := l.logger.With("requestID", reqID)
 	return &Logger{log}
 }
