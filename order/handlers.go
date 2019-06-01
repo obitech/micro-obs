@@ -41,11 +41,12 @@ func (s *Server) getAllOrders() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		span, ctx := ot.StartSpanFromContext(r.Context(), "getAllOrders")
 		defer span.Finish()
+		log := util.RequestIDLogger(s.logger, r)
 
 		defaultErrMsg := "unable to retrieve orders"
 		keys, err := s.RedisScanOrders(ctx)
 		if err != nil {
-			s.logger.Errorw("unable to SCAN redis for keys",
+			log.Errorw("unable to SCAN redis for keys",
 				"error", err,
 			)
 			s.Respond(ctx, http.StatusInternalServerError, defaultErrMsg, 0, nil, w)
@@ -56,7 +57,7 @@ func (s *Server) getAllOrders() http.HandlerFunc {
 		for _, k := range keys {
 			o, err := s.RedisGetOrder(ctx, k)
 			if err != nil {
-				s.logger.Errorw("unable to get get order",
+				log.Errorw("unable to get get order",
 					"key", k,
 					"error", err,
 				)
@@ -81,6 +82,7 @@ func (s *Server) setOrder(update bool) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		span, ctx := ot.StartSpanFromContext(r.Context(), "setNewOrder")
 		defer span.Finish()
+		log := util.RequestIDLogger(s.logger, r)
 
 		var (
 			defaultErrMsg string
@@ -100,7 +102,7 @@ func (s *Server) setOrder(update bool) http.HandlerFunc {
 		// Accept payload
 		body, err := ioutil.ReadAll(io.LimitReader(r.Body, 1048576))
 		if err != nil {
-			s.logger.Errorw("unable to read request body",
+			log.Errorw("unable to read request body",
 				"error", err,
 			)
 			r.Body.Close()
@@ -112,7 +114,7 @@ func (s *Server) setOrder(update bool) http.HandlerFunc {
 		// Parse payload
 		// TODO: handle multiple orders
 		if err := json.Unmarshal(body, order); err != nil {
-			s.logger.Errorw("unable to parse payload",
+			log.Errorw("unable to parse payload",
 				"error", err,
 			)
 			s.Respond(ctx, http.StatusBadRequest, "unable to parse payload", 0, nil, w)
@@ -128,7 +130,7 @@ func (s *Server) setOrder(update bool) http.HandlerFunc {
 		// Check for existence
 		i, err := s.RedisGetOrder(ctx, order.ID)
 		if err != nil {
-			s.logger.Errorw("unable to retrieve Item from Redis",
+			log.Errorw("unable to retrieve Item from Redis",
 				"key", order.ID,
 				"error", err,
 			)
@@ -145,7 +147,7 @@ func (s *Server) setOrder(update bool) http.HandlerFunc {
 		// Create Order in Redis
 		err = s.RedisSetOrder(ctx, order)
 		if err != nil {
-			s.logger.Errorw("unable to create order in redis",
+			log.Errorw("unable to create order in redis",
 				"key", order.ID,
 				"error", err,
 			)
@@ -161,11 +163,12 @@ func (s *Server) createOrder() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		span, ctx := ot.StartSpanFromContext(r.Context(), "createOrder")
 		defer span.Finish()
+		log := util.RequestIDLogger(s.logger, r)
 
 		// Accept payload
 		body, err := ioutil.ReadAll(io.LimitReader(r.Body, 1048576))
 		if err != nil {
-			s.logger.Errorw("unable to read request body",
+			log.Errorw("unable to read request body",
 				"error", err,
 			)
 			r.Body.Close()
@@ -177,7 +180,7 @@ func (s *Server) createOrder() http.HandlerFunc {
 		// Parse payload
 		var order *Order
 		if err := json.Unmarshal(body, &order); err != nil {
-			s.logger.Errorw("unable to parse payload",
+			log.Errorw("unable to parse payload",
 				"error", err,
 			)
 			s.Respond(ctx, http.StatusBadRequest, "unable to parse payload", 0, nil, w)
@@ -200,7 +203,7 @@ func (s *Server) createOrder() http.HandlerFunc {
 					return
 				}
 
-				s.logger.Errorw("unable to retrieve item from item service",
+				log.Errorw("unable to retrieve item from item service",
 					"itemID", orderItem.ID,
 					"error", err,
 				)
@@ -219,7 +222,7 @@ func (s *Server) createOrder() http.HandlerFunc {
 		// Get OrderID from Redis
 		id, err := s.RedisGetNextOrderID(ctx)
 		if err != nil {
-			s.logger.Errorw("unable to get next order ID",
+			log.Errorw("unable to get next order ID",
 				"error", err,
 			)
 			s.Respond(ctx, http.StatusInternalServerError, "unable to create order", 0, nil, w)
@@ -230,7 +233,7 @@ func (s *Server) createOrder() http.HandlerFunc {
 		// Create order
 		err = s.RedisSetOrder(ctx, order)
 		if err != nil {
-			s.logger.Errorw("unable to create order in redis",
+			log.Errorw("unable to create order in redis",
 				"error", err,
 			)
 		}
@@ -245,6 +248,7 @@ func (s *Server) getOrder() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		span, ctx := ot.StartSpanFromContext(r.Context(), "getOrder")
 		defer span.Finish()
+		log := util.RequestIDLogger(s.logger, r)
 
 		pr := mux.Vars(r)
 		id, err := strconv.ParseInt(pr["id"], 10, 64)
@@ -255,7 +259,7 @@ func (s *Server) getOrder() http.HandlerFunc {
 
 		order, err := s.RedisGetOrder(ctx, id)
 		if err != nil {
-			s.logger.Errorw("unable to get key from redis",
+			log.Errorw("unable to get key from redis",
 				"key", id,
 				"error", err,
 			)
@@ -277,12 +281,13 @@ func (s *Server) delay() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		span, ctx := ot.StartSpanFromContext(r.Context(), "delay")
 		defer span.Finish()
+		log := util.RequestIDLogger(s.logger, r)
 
 		// Simulate delay between 30ms - 800ms
 		t := time.Duration((rand.Float64()*800)+30) * time.Millisecond
 
 		span.SetTag("wait", t)
-		s.logger.Debugw("Waiting",
+		log.Debugw("Waiting",
 			"time", t,
 		)
 
@@ -297,8 +302,9 @@ func (s *Server) simulateError() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		span, ctx := ot.StartSpanFromContext(r.Context(), "simulateError")
 		defer span.Finish()
+		log := util.RequestIDLogger(s.logger, r)
 
-		s.logger.Errorw("Error occured",
+		log.Errorw("Error occured",
 			"error", errors.New("nasty error message"),
 		)
 
