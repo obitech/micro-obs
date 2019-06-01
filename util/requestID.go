@@ -13,7 +13,11 @@ const requestIDKey key = iota
 
 // RequestIDFromContext extracts a Request ID from a context.
 func RequestIDFromContext(ctx context.Context) string {
-	return ctx.Value(requestIDKey).(string)
+	reqID, ok := ctx.Value(requestIDKey).(string)
+	if !ok {
+		reqID = ""
+	}
+	return reqID
 }
 
 // AssignRequestID checks the X-Request-ID Header if an ID is present and adds it to the

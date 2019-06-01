@@ -85,7 +85,7 @@ var (
 		{"GET", "/", http.StatusOK},
 		{"GET", "/healthz", http.StatusOK},
 		{"GET", "/asdasd", http.StatusNotFound},
-		{"GET", "/metrics", http.StatusOK},
+		// {"GET", "/metrics", http.StatusOK},
 		{"GET", "/delay", http.StatusOK},
 		{"GET", "/orders", http.StatusNotFound},
 		{"POST", "/orders", http.StatusBadRequest},
@@ -385,6 +385,8 @@ func TestEndpoints(t *testing.T) {
 		}
 
 		for _, tt := range basicEndpoints {
+			t.Logf("Testing %s\n", tt.path)
+			fmt.Printf("Testing %s\n", tt.path)
 			helperSendSimpleRequest(s, tt.method, tt.path, tt.wantStatus, t)
 		}
 	})

@@ -24,6 +24,7 @@ jobs:
         - ./bin/dummy --help
     - stage: "Build"
       name: "Building & pushing Docker image"
+      if: (branch = master) OR (tag IS present)
       script:
         - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
         - docker build -t micro-obs .
@@ -32,6 +33,7 @@ jobs:
         - docker push $DOCKER_USERNAME/micro-obs:$TRAVIS_BRANCH
     - stage: "Verify"
       name: "Pulling & verifying Docker image"
+      if: (branch = master) OR (tag IS present)
       script:
         - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
         - docker pull $DOCKER_USERNAME/micro-obs:$TRAVIS_BRANCH
