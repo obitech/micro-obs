@@ -184,7 +184,8 @@ func (s *Server) internalError(ctx context.Context, w http.ResponseWriter) {
 	w.Header().Del("Content-Type")
 	w.WriteHeader(status)
 	if _, err := io.WriteString(w, "Internal Server Error\n"); err != nil {
-		s.logger.Panicw("unable to send response",
+		log := util.RequestIDLoggerFromContext(ctx, s.logger)
+		log.Panicw("unable to send response",
 			"error", err,
 		)
 	}
@@ -195,11 +196,12 @@ func (s *Server) Respond(ctx context.Context, status int, m string, c int, data 
 	span, ctx := ot.StartSpanFromContext(ctx, "Respond")
 	defer span.Finish()
 	span.SetTag("status", status)
+	log := util.RequestIDLoggerFromContext(ctx, s.logger)
 
 	res, err := NewResponse(status, m, c, data)
 	if err != nil {
 		s.internalError(ctx, w)
-		s.logger.Panicw("unable to create JSON response",
+		log.Panicw("unable to create JSON response",
 			"error", err,
 		)
 	}
@@ -207,7 +209,7 @@ func (s *Server) Respond(ctx context.Context, status int, m string, c int, data 
 	err = res.SendJSON(w)
 	if err != nil {
 		s.internalError(ctx, w)
-		s.logger.Panicw("sending JSON response failed",
+		log.Panicw("sending JSON response failed",
 			"error", err,
 			"response", res,
 		)

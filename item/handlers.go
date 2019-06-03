@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
+	"github.com/obitech/micro-obs/util"
 	ot "github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 )
@@ -37,11 +38,12 @@ func (s *Server) getAllItems() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		span, ctx := ot.StartSpanFromContext(r.Context(), "getAllItems")
 		defer span.Finish()
+		log := util.RequestIDLogger(s.logger, r)
 
 		defaultErrMsg := "unable to retrieve items"
 		keys, err := s.RedisScanKeys(ctx)
 		if err != nil {
-			s.logger.Errorw("unable to SCAN redis for keys",
+			log.Errorw("unable to SCAN redis for keys",
 				"error", err,
 			)
 			s.Respond(ctx, http.StatusInternalServerError, defaultErrMsg, 0, nil, w)
@@ -52,7 +54,7 @@ func (s *Server) getAllItems() http.HandlerFunc {
 		for _, k := range keys {
 			i, err := s.RedisGetItem(ctx, k)
 			if err != nil {
-				s.logger.Errorw("unable to retrieve item",
+				log.Errorw("unable to retrieve item",
 					"key", k,
 					"error", err,
 				)
@@ -77,6 +79,7 @@ func (s *Server) setItem(update bool) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		span, ctx := ot.StartSpanFromContext(r.Context(), "setItem")
 		defer span.Finish()
+		log := util.RequestIDLogger(s.logger, r)
 
 		var (
 			defaultErrMsg = "unable to create items"
@@ -86,7 +89,7 @@ func (s *Server) setItem(update bool) http.HandlerFunc {
 		// Accept payload
 		body, err := ioutil.ReadAll(io.LimitReader(r.Body, 1048576))
 		if err != nil {
-			s.logger.Errorw("unable to read request body",
+			log.Errorw("unable to read request body",
 				"error", err,
 			)
 			r.Body.Close()
@@ -97,7 +100,7 @@ func (s *Server) setItem(update bool) http.HandlerFunc {
 
 		// Parse payload
 		if err := json.Unmarshal(body, &items); err != nil {
-			s.logger.Errorw("unable to parse payload",
+			log.Errorw("unable to parse payload",
 				"error", err,
 			)
 			s.Respond(ctx, http.StatusBadRequest, "unable to parse payload", 0, nil, w)
@@ -117,14 +120,14 @@ func (s *Server) setItem(update bool) http.HandlerFunc {
 			}
 
 			if err := item.SetID(ctx); err != nil {
-				s.logger.Errorw("unable to set item ID",
+				log.Errorw("unable to set item ID",
 					"error", err,
 				)
 				s.Respond(ctx, http.StatusInternalServerError, defaultErrMsg, 0, nil, w)
 				return
 			}
 
-			s.logger.Debugw("item struct created",
+			log.Debugw("item struct created",
 				"id", item.ID,
 				"name", item.Name,
 				"desc", item.Desc,
@@ -134,7 +137,7 @@ func (s *Server) setItem(update bool) http.HandlerFunc {
 			// Check for existence
 			_, err := s.RedisGetItem(ctx, item.ID)
 			if err != nil {
-				s.logger.Errorw("unable to retrieve Item from Redis",
+				log.Errorw("unable to retrieve Item from Redis",
 					"key", item.ID,
 					"error", err,
 				)
@@ -151,7 +154,7 @@ func (s *Server) setItem(update bool) http.HandlerFunc {
 			// Check for existence
 			i, err := s.RedisGetItem(ctx, item.ID)
 			if err != nil {
-				s.logger.Errorw("unable to retrieve Item from Redis",
+				log.Errorw("unable to retrieve Item from Redis",
 					"key", item.ID,
 					"error", err,
 				)
@@ -160,7 +163,7 @@ func (s *Server) setItem(update bool) http.HandlerFunc {
 			}
 			if i != nil {
 				if !update {
-					s.logger.Debugw("item already exists",
+					log.Debugw("item already exists",
 						"key", item.ID,
 					)
 					itemsFailedMsg += fmt.Sprintf("%s already exists, ", item.ID)
@@ -171,7 +174,7 @@ func (s *Server) setItem(update bool) http.HandlerFunc {
 			// Create Item in Redis
 			err = s.RedisSetItem(ctx, item)
 			if err != nil {
-				s.logger.Errorw("unable to create item in redis",
+				log.Errorw("unable to create item in redis",
 					"key", item.ID,
 					"error", err,
 				)
@@ -206,13 +209,14 @@ func (s *Server) getItem() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		span, ctx := ot.StartSpanFromContext(r.Context(), "getItem")
 		defer span.Finish()
+		log := util.RequestIDLogger(s.logger, r)
 
 		pr := mux.Vars(r)
 		key := pr["id"]
 
 		item, err := s.RedisGetItem(ctx, key)
 		if err != nil {
-			s.logger.Errorw("unable to get key from redis",
+			log.Errorw("unable to get key from redis",
 				"key", key,
 				"error", err,
 			)
@@ -232,13 +236,14 @@ func (s *Server) delItem() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		span, ctx := ot.StartSpanFromContext(r.Context(), "delItem")
 		defer span.Finish()
+		log := util.RequestIDLogger(s.logger, r)
 
 		pr := mux.Vars(r)
 		key := pr["id"]
 
 		err := s.RedisDelItem(ctx, key)
 		if err != nil {
-			s.logger.Errorw("unable to delete key from redis",
+			log.Errorw("unable to delete key from redis",
 				"key", key,
 				"error", err,
 			)
@@ -254,12 +259,13 @@ func (s *Server) delay() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		span, ctx := ot.StartSpanFromContext(r.Context(), "delay")
 		defer span.Finish()
+		log := util.RequestIDLogger(s.logger, r)
 
 		// Simulate delay between 10ms - 500ms
 		t := time.Duration((rand.Float64()*500)+10) * time.Millisecond
 
 		span.SetTag("wait", t)
-		s.logger.Debugw("Waiting",
+		log.Debugw("Waiting",
 			"time", t,
 		)
 
@@ -274,8 +280,9 @@ func (s *Server) simulateError() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		span, ctx := ot.StartSpanFromContext(r.Context(), "simulateError")
 		defer span.Finish()
+		log := util.RequestIDLogger(s.logger, r)
 
-		s.logger.Errorw("Error occured",
+		log.Errorw("Error occured",
 			"error", errors.New("nasty error message"),
 		)
 
